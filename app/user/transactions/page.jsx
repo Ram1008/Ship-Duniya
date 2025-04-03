@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -35,6 +36,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import jsPDF from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import { se } from "date-fns/locale";
+import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 // Utility to get badge color based on status
 const getStatusColor = (status) => {
@@ -92,6 +96,33 @@ export default function Transactions() {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedYear, setSelectedYear] = useState("all");
   const [invoiceDetails, setInvoiceDetails] = useState(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    from: new Date(2022, 0, 1),
+    to: new Date(),
+  });
+
+  // Filter transactions based on search query and date range
+  const filteredTransactions = transactions.filter((transaction) => {
+    const matchesSearchQuery = searchQuery
+      ? transaction.transactionId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        transaction.orderId?.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+
+    const matchesDateRange =
+      new Date(transaction.updatedAt) >= new Date(dateRange.from) &&
+      new Date(transaction.updatedAt) <= new Date(dateRange.to);
+
+    return matchesSearchQuery && matchesDateRange;
+  });
+
+  const walletTransactions = filteredTransactions.filter((trans) =>
+    trans.type.includes("wallet")
+  );
+
+  const shippingTransactions = filteredTransactions.filter((trans) =>
+    trans.type.includes("shipping")
+  );
 
   // Filter invoices based on search query and selected year
   const filteredInvoices = monthlyInvoices.filter(
@@ -115,474 +146,436 @@ export default function Transactions() {
     }
   };
 
-  // Function to download the invoice using jsPDF
-  // const handleDownloadInvoice = () => {
-  //   const doc = new jsPDF();
-
-  //   // Prepare a simple table with transaction date and amount
-  //   const tableColumn = ["Date", "Amount"];
-  //   let tableRows = [];
-
-  //   const invoice = monthlyInvoices.find((inv) => inv.id === selectedInvoice);
-  //   if (invoice) {
-  //     invoice.transactions.forEach((tx) => {
-  //       tableRows.push([
-  //         format(new Date(tx.updatedAt), "dd MMM yyyy"),
-  //         `${tx.currency || "₹"} ${tx.amount.toFixed(2)}`,
-  //       ]);
-  //     });
-  //   }
-
-  //   if (tableRows.length > 0) {
-  //     doc.text(
-  //       `Invoice ${invoice.id} - ${invoice.month} ${invoice.year}`,
-  //       14,
-  //       20
-  //     );
-  //     if (doc.autoTable) {
-  //       doc.autoTable({
-  //         head: [tableColumn],
-  //         body: tableRows,
-  //         startY: 30,
-  //       });
-  //     }
-  //     doc.save(`Invoice_${invoice.id}.pdf`);
-  //   } else {
-  //     alert("Please select a valid invoice to download.");
-  //   }
-  // };
-
-const handleDownloadInvoice = () => {
-  // Get invoice data from your API
-  const invoice = monthlyInvoices.find((inv) => inv.id === selectedInvoice);
-  if (!invoice) {
-    alert("Please select a valid invoice to download.");
-    return;
-  }
-
-  // Create new PDF document
-  const doc = new jsPDF();
-
-  // Set initial margins and position
-  const leftMargin = 15;
-  const topMargin = 15;
-  let currentY = topMargin;
-
-  // Load and add logo image
-  const logoUrl = "../../../public/shipDuniyaIcon.jpg";
-  const img = new Image();
-  img.src = logoUrl;
-
-  img.onload = function () {
-    // Add logo to the PDF
-    doc.addImage(img, "JPEG", leftMargin, currentY, 30, 30);
-
-    // Continue with the rest of the PDF generation
-    continueWithPdfGeneration();
-  };
-
-  img.onerror = function () {
-    console.error("Error loading logo image");
-    // Continue with PDF generation without the logo
-    doc.rect(leftMargin, currentY, 30, 30);
-    continueWithPdfGeneration();
-  };
-
-  function continueWithPdfGeneration() {
-    // Add company name and title
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("TAX INVOICE", doc.internal.pageSize.width / 2, currentY + 10, {
-      align: "center",
-    });
-
-    doc.setFontSize(20);
-    doc.text("SHIP DUNIYA", doc.internal.pageSize.width / 2, currentY + 20, {
-      align: "center",
-    });
-
-    // Add "Original Copy" text
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "italic");
-    doc.text("Original Copy", doc.internal.pageSize.width - 20, currentY + 10, {
-      align: "right",
-    });
-
-    // Company address and details
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      "C-45, GROUND FLOOR, SECTORE 10, NOIDA",
-      doc.internal.pageSize.width / 2,
-      currentY + 30,
-      { align: "center" }
-    );
-    doc.text(
-      `GSTIN : ${invoice.sellerGstin || "09AFLFS8825D1ZK"}`,
-      doc.internal.pageSize.width / 2,
-      currentY + 35,
-      { align: "center" }
-    );
-    doc.text(
-      `Tel. : ${invoice.sellerPhone || "9290551411, 9990531411"}   email : ${
-        invoice.sellerEmail || "shipduniya@gmail.com"
-      }`,
-      doc.internal.pageSize.width / 2,
-      currentY + 40,
-      { align: "center" }
-    );
-
-    currentY += 45;
-
-    // Supply details box
-    doc.rect(doc.internal.pageSize.width - 80, currentY, 80, 20);
-    doc.text(
-      "Place of Supply   :   Uttar Pradesh (09)",
-      doc.internal.pageSize.width - 75,
-      currentY + 8
-    );
-    doc.text(
-      "Reverse Charge    :   N",
-      doc.internal.pageSize.width - 75,
-      currentY + 15
-    );
-
-    currentY += 25;
-
-    // Billing and shipping information
-    const billingStartX = leftMargin;
-    const shippingStartX = doc.internal.pageSize.width / 2;
-
-    // Draw boxes
-    doc.rect(
-      billingStartX,
-      currentY,
-      doc.internal.pageSize.width / 2 - leftMargin,
-      40
-    );
-    doc.rect(
-      shippingStartX,
-      currentY,
-      doc.internal.pageSize.width / 2 - leftMargin,
-      40
-    );
-
-    // Box headers
-    doc.setFont("helvetica", "bold");
-    doc.text("Billed to : (SELLER DETAILS)", billingStartX + 5, currentY + 8);
-    doc.text("Shipped to: (SELLER DETAILS)", shippingStartX + 5, currentY + 8);
-
-    // Box content
-    doc.setFont("helvetica", "normal");
-    const address = [
-      invoice.buyerName || "FOREVER ENGINEERING SYSTEM PVT LTD",
-      invoice.buyerAddress1 || "B 817, 8TH FLOOR",
-      invoice.buyerAddress2 || "ADVANT NAVIS BUSINESS PARK, SECTOR 142",
-      invoice.buyerCity || "NOIDA, Uttar Pradesh, 201301",
-    ];
-
-    // Add billing address
-    doc.text(address, billingStartX + 5, currentY + 15);
-
-    // Add shipping address (same in this case)
-    doc.text(address, shippingStartX + 5, currentY + 15);
-
-    currentY += 45;
-
-    // GSTIN Information
-    doc.text(
-      `GSTIN / UIN       :   ${invoice.buyerGstin || "09AACCF6683P1ZT"}`,
-      billingStartX + 5,
-      currentY
-    );
-    doc.text(
-      `GSTIN / UIN       :   ${invoice.buyerGstin || "09AACCF6683P1ZT"}`,
-      shippingStartX + 5,
-      currentY
-    );
-
-    currentY += 10;
-
-    // Line items table
-    const tableColumns = [
-      { header: "S.No.", dataKey: "sno" },
-      { header: "Description of Goods", dataKey: "description" },
-      { header: "HSN/SAC Code", dataKey: "hsn" },
-      { header: "Qty.", dataKey: "qty" },
-      { header: "Unit", dataKey: "unit" },
-      { header: "List Price", dataKey: "price" },
-      { header: "Discount", dataKey: "discount" },
-      { header: "Amount(₹)", dataKey: "amount" },
-    ];
-
-    // Create table rows from invoice transactions
-    let tableRows = [];
-
-    if (invoice.transactions && invoice.transactions.length > 0) {
-      tableRows = invoice.transactions.map((tx, index) => ({
-        sno: index + 1,
-        description: tx.description || "SHIPPING CHARGE",
-        hsn: tx.hsn || "996812",
-        qty: tx.quantity || "--",
-        unit: tx.unit || "--",
-        price: tx.price || "0.00 %",
-        discount: "--",
-        amount: tx.amount.toFixed(2),
-      }));
-    } else {
-      // Fallback to sample data if no transactions
-      tableRows = [
-        {
-          sno: 1,
-          description: "SHIPPING CHARGE",
-          hsn: "996812",
-          qty: "--",
-          unit: "--",
-          price: "0.00 %",
-          discount: "--",
-          amount: "1000.00",
-        },
-      ];
+  const handleDownloadInvoice = () => {
+    // Get invoice data from your API
+    const invoice = monthlyInvoices.find((inv) => inv.id === selectedInvoice);
+    if (!invoice) {
+      alert("Please select a valid invoice to download.");
+      return;
     }
 
-    // Calculate totals
-    const subtotal = tableRows.reduce(
-      (sum, row) => sum + parseFloat(row.amount),
-      0
-    );
-    const taxRate = invoice.taxRate || 9;
-    const cgst = (subtotal * taxRate) / 100;
-    const sgst = (subtotal * taxRate) / 100;
-    const roundOff = invoice.roundOff || 0.0;
-    const grandTotal = subtotal + cgst + sgst + roundOff;
+    // Create new PDF document
+    const doc = new jsPDF();
 
-    // Add table
-    doc.autoTable({
-      head: [tableColumns.map((col) => col.header)],
-      body: tableRows.map((row) => tableColumns.map((col) => row[col.dataKey])),
-      startY: currentY,
-      theme: "grid",
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-      },
-      headStyles: {
-        fillColor: [255, 255, 255],
-        textColor: [0, 0, 0],
-        fontStyle: "bold",
-        lineWidth: 0.1,
-      },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 60 },
-      },
-    });
+    // Set initial margins and position
+    const leftMargin = 15;
+    const topMargin = 15;
+    let currentY = topMargin;
 
-    // Get the Y position after the table
-    currentY = doc.previousAutoTable.finalY + 10;
+    // Load and add logo image
+    const logoUrl = "../../../public/shipDuniyaIcon.jpg";
+    const img = new Image();
+    img.src = logoUrl;
 
-    // Add tax summary
-    const taxStartX = doc.internal.pageSize.width - 120;
+    img.onload = function () {
+      // Add logo to the PDF
+      doc.addImage(img, "JPEG", leftMargin, currentY, 30, 30);
 
-    doc.text("Add : CGST", taxStartX, currentY);
-    doc.text(`₹`, taxStartX + 70, currentY, { align: "right" });
-    doc.text(`${taxRate.toFixed(1)} %`, taxStartX + 80, currentY, {
-      align: "right",
-    });
-    doc.text(`${cgst.toFixed(2)}`, taxStartX + 100, currentY, {
-      align: "right",
-    });
+      // Continue with the rest of the PDF generation
+      continueWithPdfGeneration();
+    };
 
-    currentY += 5;
-    doc.text("Add : SGST", taxStartX, currentY);
-    doc.text(`₹`, taxStartX + 70, currentY, { align: "right" });
-    doc.text(`${taxRate.toFixed(1)} %`, taxStartX + 80, currentY, {
-      align: "right",
-    });
-    doc.text(`${sgst.toFixed(2)}`, taxStartX + 100, currentY, {
-      align: "right",
-    });
+    img.onerror = function () {
+      console.error("Error loading logo image");
+      // Continue with PDF generation without the logo
+      doc.rect(leftMargin, currentY, 30, 30);
+      continueWithPdfGeneration();
+    };
 
-    currentY += 5;
-    doc.text("Add : Rounded Off (+)", taxStartX, currentY);
-    doc.text(`${roundOff.toFixed(2)}`, taxStartX + 100, currentY, {
-      align: "right",
-    });
+    function continueWithPdfGeneration() {
+      // Add company name and title
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("TAX INVOICE", doc.internal.pageSize.width / 2, currentY + 10, {
+        align: "center",
+      });
 
-    currentY += 8;
-    doc.setLineWidth(0.1);
-    doc.line(
-      taxStartX - 5,
-      currentY - 3,
-      doc.internal.pageSize.width - leftMargin,
-      currentY - 3
-    );
+      doc.setFontSize(20);
+      doc.text("SHIP DUNIYA", doc.internal.pageSize.width / 2, currentY + 20, {
+        align: "center",
+      });
 
-    doc.setFont("helvetica", "bold");
-    doc.text("Grand Total", taxStartX, currentY);
-    doc.text(`${grandTotal.toFixed(2)}`, taxStartX + 100, currentY, {
-      align: "right",
-    });
+      // Add "Original Copy" text
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "italic");
+      doc.text("Original Copy", doc.internal.pageSize.width - 20, currentY + 10, {
+        align: "right",
+      });
 
-    // Create tax rate table
-    currentY += 15;
-    doc.autoTable({
-      head: [
-        ["Tax Rate", "Taxable Amt.", "CGST Amt.", "SGST Amt.", "Total Tax"],
-      ],
-      body: [
-        [
-          `${(taxRate * 2).toFixed(0)}%`,
-          subtotal.toFixed(2),
-          cgst.toFixed(2),
-          sgst.toFixed(2),
-          (cgst + sgst).toFixed(2),
+      // Company address and details
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        "C-45, GROUND FLOOR, SECTORE 10, NOIDA",
+        doc.internal.pageSize.width / 2,
+        currentY + 30,
+        { align: "center" }
+      );
+      doc.text(
+        `GSTIN : ${invoice.sellerGstin || "09AFLFS8825D1ZK"}`,
+        doc.internal.pageSize.width / 2,
+        currentY + 35,
+        { align: "center" }
+      );
+      doc.text(
+        `Tel. : ${invoice.sellerPhone || "9290551411, 9990531411"}   email : ${
+          invoice.sellerEmail || "shipduniya@gmail.com"
+        }`,
+        doc.internal.pageSize.width / 2,
+        currentY + 40,
+        { align: "center" }
+      );
+
+      currentY += 45;
+
+      // Supply details box
+      doc.rect(doc.internal.pageSize.width - 80, currentY, 80, 20);
+      doc.text(
+        "Place of Supply   :   Uttar Pradesh (09)",
+        doc.internal.pageSize.width - 75,
+        currentY + 8
+      );
+      doc.text(
+        "Reverse Charge    :   N",
+        doc.internal.pageSize.width - 75,
+        currentY + 15
+      );
+
+      currentY += 25;
+
+      // Billing and shipping information
+      const billingStartX = leftMargin;
+      const shippingStartX = doc.internal.pageSize.width / 2;
+
+      // Draw boxes
+      doc.rect(
+        billingStartX,
+        currentY,
+        doc.internal.pageSize.width / 2 - leftMargin,
+        40
+      );
+      doc.rect(
+        shippingStartX,
+        currentY,
+        doc.internal.pageSize.width / 2 - leftMargin,
+        40
+      );
+
+      // Box headers
+      doc.setFont("helvetica", "bold");
+      doc.text("Billed to : (SELLER DETAILS)", billingStartX + 5, currentY + 8);
+      doc.text("Shipped to: (SELLER DETAILS)", shippingStartX + 5, currentY + 8);
+
+      // Box content
+      const address = [
+        invoice.buyerName || "FOREVER ENGINEERING SYSTEM PVT LTD",
+        invoice.buyerAddress1 || "B 817, 8TH FLOOR",
+        invoice.buyerAddress2 || "ADVANT NAVIS BUSINESS PARK, SECTOR 142",
+        invoice.buyerCity || "NOIDA, Uttar Pradesh, 201301",
+      ];
+
+      // Add billing address
+      doc.text(address, billingStartX + 5, currentY + 15);
+
+      // Add shipping address (same in this case)
+      doc.text(address, shippingStartX + 5, currentY + 15);
+
+      currentY += 45;
+
+      // GSTIN Information
+      doc.text(
+        `GSTIN / UIN       :   ${invoice.buyerGstin || "09AACCF6683P1ZT"}`,
+        billingStartX + 5,
+        currentY
+      );
+      doc.text(
+        `GSTIN / UIN       :   ${invoice.buyerGstin || "09AACCF6683P1ZT"}`,
+        shippingStartX + 5,
+        currentY
+      );
+
+      currentY += 10;
+
+      // Line items table
+      const tableColumns = [
+        { header: "S.No.", dataKey: "sno" },
+        { header: "Description of Goods", dataKey: "description" },
+        { header: "HSN/SAC Code", dataKey: "hsn" },
+        { header: "Qty.", dataKey: "qty" },
+        { header: "Unit", dataKey: "unit" },
+        { header: "List Price", dataKey: "price" },
+        { header: "Discount", dataKey: "discount" },
+        { header: "Amount(₹)", dataKey: "amount" },
+      ];
+
+      // Create table rows from invoice transactions
+      let tableRows = [];
+
+      if (invoice.transactions && invoice.transactions.length > 0) {
+        tableRows = invoice.transactions.map((tx, index) => ({
+          sno: index + 1,
+          description: tx.description || "SHIPPING CHARGE",
+          hsn: tx.hsn || "996812",
+          qty: tx.quantity || "--",
+          unit: tx.unit || "--",
+          price: tx.price || "0.00 %",
+          discount: "--",
+          amount: tx.amount.toFixed(2),
+        }));
+      } else {
+        // Fallback to sample data if no transactions
+        tableRows = [
+          {
+            sno: 1,
+            description: "SHIPPING CHARGE",
+            hsn: "996812",
+            qty: "--",
+            unit: "--",
+            price: "0.00 %",
+            discount: "--",
+            amount: "1000.00",
+          },
+        ];
+      }
+
+      // Calculate totals
+      const subtotal = tableRows.reduce(
+        (sum, row) => sum + parseFloat(row.amount),
+        0
+      );
+      const taxRate = invoice.taxRate || 9;
+      const cgst = (subtotal * taxRate) / 100;
+      const sgst = (subtotal * taxRate) / 100;
+      const roundOff = invoice.roundOff || 0.0;
+      const grandTotal = subtotal + cgst + sgst + roundOff;
+
+      // Add table
+      doc.autoTable({
+        head: [tableColumns.map((col) => col.header)],
+        body: tableRows.map((row) => tableColumns.map((col) => row[col.dataKey])),
+        startY: currentY,
+        theme: "grid",
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        headStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+          lineWidth: 0.1,
+        },
+        columnStyles: {
+          0: { cellWidth: 10 },
+          1: { cellWidth: 60 },
+        },
+      });
+
+      // Get the Y position after the table
+      currentY = doc.previousAutoTable.finalY + 10;
+
+      // Add tax summary
+      const taxStartX = doc.internal.pageSize.width - 120;
+
+      doc.text("Add : CGST", taxStartX, currentY);
+      doc.text(`₹`, taxStartX + 70, currentY, { align: "right" });
+      doc.text(`${taxRate.toFixed(1)} %`, taxStartX + 80, currentY, {
+        align: "right",
+      });
+      doc.text(`${cgst.toFixed(2)}`, taxStartX + 100, currentY, {
+        align: "right",
+      });
+
+      currentY += 5;
+      doc.text("Add : SGST", taxStartX, currentY);
+      doc.text(`₹`, taxStartX + 70, currentY, { align: "right" });
+      doc.text(`${taxRate.toFixed(1)} %`, taxStartX + 80, currentY, {
+        align: "right",
+      });
+      doc.text(`${sgst.toFixed(2)}`, taxStartX + 100, currentY, {
+        align: "right",
+      });
+
+      currentY += 5;
+      doc.text("Add : Rounded Off (+)", taxStartX, currentY);
+      doc.text(`${roundOff.toFixed(2)}`, taxStartX + 100, currentY, {
+        align: "right",
+      });
+
+      currentY += 8;
+      doc.setLineWidth(0.1);
+      doc.line(
+        taxStartX - 5,
+        currentY - 3,
+        doc.internal.pageSize.width - leftMargin,
+        currentY - 3
+      );
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Grand Total", taxStartX, currentY);
+      doc.text(`${grandTotal.toFixed(2)}`, taxStartX + 100, currentY, {
+        align: "right",
+      });
+
+      // Create tax rate table
+      currentY += 15;
+      doc.autoTable({
+        head: [
+          ["Tax Rate", "Taxable Amt.", "CGST Amt.", "SGST Amt.", "Total Tax"],
         ],
-      ],
-      startY: currentY,
-      theme: "grid",
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-      },
-      headStyles: {
-        fillColor: [255, 255, 255],
-        textColor: [0, 0, 0],
-        fontStyle: "bold",
-        lineWidth: 0.1,
-      },
-    });
+        body: [
+          [
+            `${(taxRate * 2).toFixed(0)}%`,
+            subtotal.toFixed(2),
+            cgst.toFixed(2),
+            sgst.toFixed(2),
+            (cgst + sgst).toFixed(2),
+          ],
+        ],
+        startY: currentY,
+        theme: "grid",
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        headStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+          lineWidth: 0.1,
+        },
+      });
 
-    currentY = doc.previousAutoTable.finalY + 10;
+      currentY = doc.previousAutoTable.finalY + 10;
 
-    // Amount in words
-    doc.setFont("helvetica", "bold");
-    const amountInWords = numberToWords(Math.round(grandTotal));
-    doc.text(`Rupees ${amountInWords} Only`, leftMargin, currentY);
+      // Amount in words
+      doc.setFont("helvetica", "bold");
+      const amountInWords = numberToWords(Math.round(grandTotal));
+      doc.text(`Rupees ${amountInWords} Only`, leftMargin, currentY);
 
-    currentY += 10;
+      currentY += 10;
 
-    // Terms and conditions and signature box
-    const termsStartX = leftMargin;
-    const termsWidth = doc.internal.pageSize.width / 2 - 20;
-    const signatureStartX = doc.internal.pageSize.width / 2;
-    const signatureWidth = doc.internal.pageSize.width / 2 - leftMargin;
-    const boxHeight = 50;
+      // Terms and conditions and signature box
+      const termsStartX = leftMargin;
+      const termsWidth = doc.internal.pageSize.width / 2 - 20;
+      const signatureStartX = doc.internal.pageSize.width / 2;
+      const signatureWidth = doc.internal.pageSize.width / 2 - leftMargin;
+      const boxHeight = 50;
 
-    doc.rect(termsStartX, currentY, termsWidth, boxHeight);
-    doc.rect(signatureStartX, currentY, signatureWidth, boxHeight);
+      doc.rect(termsStartX, currentY, termsWidth, boxHeight);
+      doc.rect(signatureStartX, currentY, signatureWidth, boxHeight);
 
-    doc.setFont("helvetica", "bold");
-    doc.text("Terms & Conditions", termsStartX + 5, currentY + 8);
-    doc.text("Receiver's Signature    :", signatureStartX + 5, currentY + 8);
+      doc.setFont("helvetica", "bold");
+      doc.text("Terms & Conditions", termsStartX + 5, currentY + 8);
+      doc.text("Receiver's Signature    :", signatureStartX + 5, currentY + 8);
 
-    doc.setFont("helvetica", "normal");
-    doc.text("E & O.E", termsStartX + 5, currentY + 15);
-    doc.text(
-      "1. Goods once sold will not be taken back.",
-      termsStartX + 5,
-      currentY + 22
-    );
-    doc.text(
-      "2. Interest @ 18% p.a will be charged if the payment",
-      termsStartX + 5,
-      currentY + 29
-    );
-    doc.text(
-      "is not made with in the stipulated time.",
-      termsStartX + 5,
-      currentY + 36
-    );
-    doc.text(
-      "3. Subject to 'Uttar Pradesh' Jurisdiction only.",
-      termsStartX + 5,
-      currentY + 43
-    );
+      doc.setFont("helvetica", "normal");
+      doc.text("E & O.E", termsStartX + 5, currentY + 15);
+      doc.text(
+        "1. Goods once sold will not be taken back.",
+        termsStartX + 5,
+        currentY + 22
+      );
+      doc.text(
+        "2. Interest @ 18% p.a will be charged if the payment",
+        termsStartX + 5,
+        currentY + 29
+      );
+      doc.text(
+        "is not made with in the stipulated time.",
+        termsStartX + 5,
+        currentY + 36
+      );
+      doc.text(
+        "3. Subject to 'Uttar Pradesh' Jurisdiction only.",
+        termsStartX + 5,
+        currentY + 43
+      );
 
-    doc.text(
-      "for SHIP DUNIYA",
-      signatureStartX + signatureWidth - 30,
-      currentY + 40
-    );
-    doc.setFont("helvetica", "bold");
-    doc.text(
-      "Authorized Signatory",
-      signatureStartX + signatureWidth - 30,
-      currentY + 47
-    );
+      doc.text(
+        "for SHIP DUNIYA",
+        signatureStartX + signatureWidth - 30,
+        currentY + 40
+      );
+      doc.setFont("helvetica", "bold");
+      doc.text(
+        "Authorized Signatory",
+        signatureStartX + signatureWidth - 30,
+        currentY + 47
+      );
 
-    // Save PDF
-    doc.save(`Invoice_${invoice.id || "Ship_Duniya"}.pdf`);
+      // Save PDF
+      doc.save(`Invoice_${invoice.id || "Ship_Duniya"}.pdf`);
+    }
+  };
+
+  // Helper function to convert number to words
+  function numberToWords(num) {
+    const units = [
+      "",
+      "One",
+      "Two",
+      "Three",
+      "Four",
+      "Five",
+      "Six",
+      "Seven",
+      "Eight",
+      "Nine",
+    ];
+    const teens = [
+      "Ten",
+      "Eleven",
+      "Twelve",
+      "Thirteen",
+      "Fourteen",
+      "Fifteen",
+      "Sixteen",
+      "Seventeen",
+      "Eighteen",
+      "Nineteen",
+    ];
+    const tens = [
+      "",
+      "",
+      "Twenty",
+      "Thirty",
+      "Forty",
+      "Fifty",
+      "Sixty",
+      "Seventy",
+      "Eighty",
+      "Ninety",
+    ];
+
+    function convert(num) {
+      if (num < 10) return units[num];
+      if (num < 20) return teens[num - 10];
+      if (num < 100)
+        return (
+          tens[Math.floor(num / 10)] + (num % 10 ? " " + units[num % 10] : "")
+        );
+      if (num < 1000)
+        return (
+          units[Math.floor(num / 100)] +
+          " Hundred" +
+          (num % 100 ? " " + convert(num % 100) : "")
+        );
+      if (num < 100000)
+        return (
+          convert(Math.floor(num / 1000)) +
+          " Thousand" +
+          (num % 1000 ? " " + convert(num % 1000) : "")
+        );
+      return (
+        convert(Math.floor(num / 100000)) +
+        " Lakh" +
+        (num % 100000 ? " " + convert(num % 100000) : "")
+      );
+    }
+
+    return convert(num);
   }
-};
-
-// Helper function to convert number to words
-function numberToWords(num) {
-  const units = [
-    "",
-    "One",
-    "Two",
-    "Three",
-    "Four",
-    "Five",
-    "Six",
-    "Seven",
-    "Eight",
-    "Nine",
-  ];
-  const teens = [
-    "Ten",
-    "Eleven",
-    "Twelve",
-    "Thirteen",
-    "Fourteen",
-    "Fifteen",
-    "Sixteen",
-    "Seventeen",
-    "Eighteen",
-    "Nineteen",
-  ];
-  const tens = [
-    "",
-    "",
-    "Twenty",
-    "Thirty",
-    "Forty",
-    "Fifty",
-    "Sixty",
-    "Seventy",
-    "Eighty",
-    "Ninety",
-  ];
-
-  function convert(num) {
-    if (num < 10) return units[num];
-    if (num < 20) return teens[num - 10];
-    if (num < 100)
-      return (
-        tens[Math.floor(num / 10)] + (num % 10 ? " " + units[num % 10] : "")
-      );
-    if (num < 1000)
-      return (
-        units[Math.floor(num / 100)] +
-        " Hundred" +
-        (num % 100 ? " " + convert(num % 100) : "")
-      );
-    if (num < 100000)
-      return (
-        convert(Math.floor(num / 1000)) +
-        " Thousand" +
-        (num % 1000 ? " " + convert(num % 1000) : "")
-      );
-    return (
-      convert(Math.floor(num / 100000)) +
-      " Lakh" +
-      (num % 100000 ? " " + convert(num % 100000) : "")
-    );
-  }
-
-  return convert(num);
-}
 
   // Update invoice details when a new invoice is selected
   useEffect(() => {
@@ -634,18 +627,151 @@ function numberToWords(num) {
     setSelectedTransaction(transaction);
   };
 
-  const walletTransactions = transactions?.filter((trans) =>
-    trans.type.includes("wallet")
-  );
+  const handleDownloadExcel = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Transactions");
+      const headings = [
+        "Transaction ID",
+        "Type",
+        "Amount",
+        "Date",
+        "Current Balance",
+        "Order ID",
+        "AWB Number",
+        "Status"
+      ];
+      worksheet.addRow(headings);
+      filteredTransactions.forEach((transaction) => {
+        worksheet.addRow([
+          transaction.transactionId,
+          transaction.type.length === 1 && transaction.type[0] === "wallet"
+            ? "wallet"
+            : transaction.type.filter(type => type !== "wallet").join(" "),
+          `${transaction.currency || "$"} ${transaction.amount.toFixed(2)}`,
+          new Date(transaction.updatedAt).toLocaleDateString(),
+          transaction.balance,
+          transaction.orderId || "N/A",
+          transaction.awbNumber || "N/A",
+          transaction.status
+        ]);
+      });
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, "transactions.xlsx");
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast.error("Failed to export Excel");
+    }
+  };
 
-  const shippingTransactions = transactions?.filter((trans) =>
-    trans.type.includes("shipping")
-  );
-  
+  const handleDownloadPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const tableColumn = [
+        "Transaction ID",
+        "Type",
+        "Amount",
+        "Date",
+        "Current Balance",
+        "Order ID",
+        "AWB Number",
+        "Status"
+      ];
+      const tableRows = filteredTransactions.map((transaction) => [
+        transaction.transactionId,
+        transaction.type.length === 1 && transaction.type[0] === "wallet"
+          ? "wallet"
+          : transaction.type.filter(type => type !== "wallet").join(" "),
+        `${transaction.currency || "$"} ${transaction.amount.toFixed(2)}`,
+        new Date(transaction.updatedAt).toLocaleDateString(),
+        transaction.balance,
+        transaction.orderId || "N/A",
+        transaction.awbNumber || "N/A",
+        transaction.status
+      ]);
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: 255,
+          fontStyle: 'bold',
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 20 },
+          3: { cellWidth: 20 },
+          4: { cellWidth: 25 },
+          5: { cellWidth: 30 },
+          6: { cellWidth: 25 },
+          7: { cellWidth: 20 },
+        },
+      });
+      doc.save("transactions.pdf");
+    } catch (error) {
+      console.error("Error exporting to PDF:", error);
+      toast.error("Failed to export PDF");
+    }
+  };
 
   return (
     <Card className="w-full">
       <CardContent>
+        <div className="flex justify-between items-center my-4 ">
+          <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+          <input
+            type="text"
+            placeholder="Search transactions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input max-w-sm border-2 border-gray-400 rounded-lg px-3 py-1"
+          />
+          <Button
+            variant="export"
+            size="lg"
+            className="h-10"
+            onClick={() => setIsExportDialogOpen((prev) => !prev)}
+          >
+            <span className="text-lg">+ Export </span>
+          </Button>
+          <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Export</DialogTitle>
+                <DialogDescription>
+                  Download Excel or PDF.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex justify-around">
+                <Button
+                  variant="outline"
+                  onClick={handleDownloadExcel}
+                  className="w-full"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Excel
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDownloadPDF}
+                  className="w-full"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
         <Tabs defaultValue="wallet" className="mx-auto my-3">
           <TabsList className="p-4 gap-6 flex justify-center mx-auto max-w-max bg-white">
             <TabsTrigger
@@ -685,9 +811,9 @@ function numberToWords(num) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Transaction ID</TableHead>
+                      <TableHead> Transaction Type</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Date</TableHead>
-                      {/* <TableHead className="text-center">Status</TableHead> */}
                       <TableHead className="text-center">
                         Current Balance
                       </TableHead>
@@ -695,10 +821,15 @@ function numberToWords(num) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {transactions.map((transaction) => (
+                    {walletTransactions.map((transaction) => (
                       <TableRow key={transaction._id}>
                         <TableCell className="font-medium">
                           {transaction.transactionId}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {transaction.type.length === 1 && transaction.type[0] === "wallet"
+                            ? "wallet"
+                            : transaction.type.filter(type => type !== "wallet").join(" ")}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {transaction.currency || "$"}{" "}

@@ -361,10 +361,9 @@ const ShipmentTable = ({
       doc.text("Send By:", leftColumnX, 60);
 
       doc.setFont("helvetica", "normal");
-      doc.text(shipment.pickupAddress.name, leftColumnX, 65);
-      doc.text(`${shipment?.pickupAddress.addressLine1}`, leftColumnX, 70);
-      doc.text(`${shipment?.pickupAddress.addressLine2}`, leftColumnX, 75);
-      doc.text(`${shipment?.pickupAddress.pincode}`, leftColumnX, 80);
+      doc.text(userData.name, leftColumnX, 65);
+      doc.text(`${userData.address}`, leftColumnX, 70);
+      doc.text(`${userData.pincode}`, leftColumnX, 80);
 
       // Billed To section (right side, aligned left)
       doc.setFont("helvetica", "bold");
@@ -543,7 +542,7 @@ const ShipmentTable = ({
       for (let i = 0; i < response.data.labels.length; i++) {
         const labelData = response.data.labels[i];
         const shipment = shipments.find((s) => s.awbNumber === labelData.awb);
-
+        console.log(shipment);
         if (!shipment) {
           console.error(`Shipment not found for AWB: ${labelData.awb}`);
           continue;
@@ -607,16 +606,16 @@ const ShipmentTable = ({
         );
 
         // COD and weight section
-        doc.setFontSize(18).setFont("helvetica", "bold").text("COD", 50, 80);
+        doc.setFontSize(18).setFont("helvetica", "bold").text(shipment.orderIds[0].orderType === "COD" ? "COD" : "PREPAID", 20, 80);
         doc.text(
-          `₹${shipment.orderIds[0].collectibleValue || labelData.codAmount || "0"}`,
-          50,
+          `${shipment.orderIds[0].collectableValue > 0? shipment.orderIds[0].collectableValue: ''}`,
+          20,
           88
         );
 
-        doc.text(`${shipment.weight || labelData.weight || "2"}kg`, 150, 80);
+        doc.text(`${shipment.shipmentIds[0].actualWeight || labelData.weight}kg`, 150, 80);
         doc.text(
-          shipment.dimensions || labelData.dimensions || "45X45X45",
+          shipment.shipmentIds[0].length + "X" + shipment.shipmentIds[0].breadth + "X" + shipment.shipmentIds[0].height,
           150,
           88
         );
@@ -670,10 +669,13 @@ const ShipmentTable = ({
 
         // Simplified product table
         const tableHeaders = [
-          "Consignee",
-          "Pincode",
+          "SKU",
+          "Product Description",
           "Quantity",
-          "Product description"
+          "Amount per unit",
+          "Total Amount",
+          "GST",
+          "Taxable Amount",
         ];
 
         // Calculate equal column width dynamically
@@ -707,10 +709,12 @@ const ShipmentTable = ({
               doc.rect(xPos, 195 + j * 10, colWidth, 10);
 
               const value = [
-                product.consignee || "-",
-                product.pincode || "-",
+                "",
+                product.itemDescription || "-",
                 product.quantity?.toString(),
-                product.itemDescription
+                product.declaredValue/ product.quantity || "-",
+                "",
+                product.declaredValue
               ][k];
 
               // Wrap content if necessary
