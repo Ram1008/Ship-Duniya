@@ -46,7 +46,7 @@ const ShipmentDetails = ({ details, isTracking = false, handleBackToList }) => {
         <h2 className="text-2xl font-bold">
           {isTracking
             ? `AWB Number: ${details[0].awbNumber}`
-            : `Order Id: ${details[0].orderId}`}
+            : `Order Id: ${details[0].orderIds[0].orderId}`}
         </h2>
         <Button variant="outline" onClick={() => handleBackToList()}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to List
@@ -153,38 +153,6 @@ const ShipmentDetails = ({ details, isTracking = false, handleBackToList }) => {
               <div>
                 <dt>Status</dt>
                 <dd>{details[0].status}</dd>
-              </div>
-              <div>
-                <dt>Label</dt>
-                <dd>
-                  {details[0].label ? (
-                    <Link
-                      href={details[0].label}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      View Label
-                    </Link>
-                  ) : (
-                    <span>No Label Available</span>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt>Manifest</dt>
-                <dd>
-                  {details[0].manifest? (<Link
-                    href={details[0].manifest}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline"
-                  >
-                    View Manifest
-                  </Link>) :(
-                    <span>No Manifest Available</span>
-                  )}
-                </dd>
               </div>
               <div>
                 <dt>Dangerous Goods Shipment</dt>

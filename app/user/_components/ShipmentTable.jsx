@@ -85,17 +85,12 @@ const ShipmentTable = ({
     const matchesOrderType =
       orderType === "All" || orderType === ""
         ? true
-        : shipment.orderType === orderType ||
-          ((shipment.orderType === "prepaid" ||
-            shipment.orderType === "PREPAID") &&
-            orderType === prepaid)
-        ? true
-        : false;
+        : shipment.orderIds[0]?.orderType?.toLowerCase() === orderType.toLowerCase();
 
     const matchesPartnerType =
       partnerType === "" || partnerType === "All"
         ? true
-        : shipment.PARTNER_Name.includes(partnerType);
+        : shipment.partnerDetails?.name?.toLowerCase().includes(partnerType.toLowerCase());
 
     const matchesShipmentStatus =
       shipmentStatus === "" ? true : shipment.status === shipmentStatus;
@@ -155,7 +150,7 @@ const ShipmentTable = ({
         new Date(shipment.createdAt).toLocaleDateString(),
         shipment.consignee,
         shipment.pincode,
-        shipment.PARTNER_Name,
+        shipment.partnerDetails.name,
         shipment.orderId,
         shipment.status,
       ]);
@@ -975,6 +970,7 @@ const ShipmentTable = ({
                   </TableHead>
                   <TableHead className="text-left">AWB Number</TableHead>
                   <TableHead className="text-left">Date</TableHead>
+                  <TableHead className="text-left">Order Type</TableHead>
                   <TableHead className="text-left">Consignee</TableHead>
                   <TableHead className="text-left">Pincode</TableHead>
                   <TableHead className="text-left">Courier Name</TableHead>
@@ -1003,6 +999,9 @@ const ShipmentTable = ({
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-left">
                       {new Date(shipment.createdAt).toISOString().split("T")[0]}
+                    </TableCell>
+                    <TableCell className="text-left font-medium">
+                      {shipment.orderIds[0].orderType}
                     </TableCell>
                     <TableCell className="text-left font-medium">
                       {shipment.consignee}

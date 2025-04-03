@@ -57,33 +57,6 @@ const Tickets = () => {
     }
   };
 
-  // const onSubmit = async (data) => {
-  //   if (!issueType) {
-  //     alert("Please select an issue type.");
-  //     return;
-  //   }
-
-  //   setLoading(true);
-  //   try {
-  //     const response = await fetch.post("/ticket/raise", {
-  //       subject: data.subject,
-  //       description: data.description,
-  //       issueType: issueType,
-  //       awbNumber: data.awb ? data.awb : null,
-  //     });
-  //     console.log("Ticket raise :", response.data);
-
-  //     alert("Ticket submitted successfully");
-  //     fetchTickets();
-  //     reset();
-  //     setIssueType("");
-  //   } catch (error) {
-  //     alert("Failed to submit the ticket. Please try again.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const onSubmit = async (data) => {
     if (!issueType) {
       alert("Please select an issue type.");
@@ -396,9 +369,13 @@ const Tickets = () => {
             <>
               <DialogHeader>
                 <DialogTitle>
+                <h1 className="text-lg font-semibold">
+              Ticket id: {selectedTicket._id}
+            </h1>
                   {getIssueTypeLabel(selectedTicket.issueType)}
                 </DialogTitle>
                 <DialogDescription>{selectedTicket.subject}</DialogDescription>
+                {selectedTicket.awbNumber? <DialogDescription>AWB Number: {selectedTicket.awbNumber}</DialogDescription> : null}
                 <DialogDescription>
                   {selectedTicket.description}
                 </DialogDescription>
@@ -511,6 +488,9 @@ const TicketCard = ({ ticket, onClick }) => {
       <CardContent className="pt-6">
         <div className="flex justify-between items-start mb-2">
           <div className="flex flex-col ">
+          <h1 className="text-lg font-semibold">
+          Ticket id: {ticket._id}
+            </h1>
             <h2 className="text-lg font-semibold">
               {getIssueTypeLabel(ticket.issueType)}
             </h2>

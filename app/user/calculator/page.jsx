@@ -249,73 +249,97 @@ export default function RateCalculator() {
               <CardContent>
                 {category.deliveryPartners.map((partner, partnerIndex) => (
                   <div key={partnerIndex} className="mb-4 px-2 py-4 rounded-lg">
-                    <CardDescription className="font-semibold text-black text-xl">
-                      {partner.carrierName}
-                    </CardDescription>
-                    <p>
-                      COD Charges: ₹{partner.codCharges} | COD:{" "}
-                      {partner.codPercentage}
-                    </p>
-                    <div className="overflow-x-auto custom-horizontal-scroll">
-                      <Table className="min-w-full mt-2">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-24">Type</TableHead>
-                            <TableHead className="text-center">
-                              Within City
-                            </TableHead>
-                            <TableHead className="text-center">
-                              Within State
-                            </TableHead>
-                            <TableHead className="text-center">
-                              Metro to Metro
-                            </TableHead>
-                            <TableHead className="text-center">
-                              NE, J&K, KL, AN
-                            </TableHead>
-                            <TableHead className="text-center">
-                              Regional
-                            </TableHead>
-                            <TableHead className="text-center">India</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          <TableRow>
-                            <TableCell className="font-medium">
-                              Forward
-                            </TableCell>
-                            <TableCell>₹{partner.fwd?.withinCity}</TableCell>
-                            <TableCell>₹{partner.fwd?.withinState}</TableCell>
-                            <TableCell>₹{partner.fwd?.metroToMetro}</TableCell>
-                            <TableCell>₹{partner.fwd?.neJkKlAn}</TableCell>
-                            <TableCell>₹{partner.fwd?.Regional}</TableCell>
-                            <TableCell>₹{partner.fwd?.india}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell className="font-medium">RTO</TableCell>
-                            <TableCell>₹{partner.rto?.withinCity}</TableCell>
-                            <TableCell>₹{partner.rto?.withinState}</TableCell>
-                            <TableCell>₹{partner.rto?.metroToMetro}</TableCell>
-                            <TableCell>₹{partner.rto?.neJkKlAn}</TableCell>
-                            <TableCell>₹{partner.rto?.Regional}</TableCell>
-                            <TableCell>₹{partner.rto?.india}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell className="font-medium">
-                              Additional Weight
-                            </TableCell>
-                            <TableCell>₹{partner.addWt?.withinCity}</TableCell>
-                            <TableCell>₹{partner.addWt?.withinState}</TableCell>
-                            <TableCell>
-                              ₹{partner.addWt?.metroToMetro}
-                            </TableCell>
-                            <TableCell>₹{partner.addWt?.neJkKlAn}</TableCell>
-                            <TableCell>₹{partner.addWt?.Regional}</TableCell>
-                            <TableCell>₹{partner.addWt?.india}</TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
+                    <div 
+                      className="flex justify-between items-center cursor-pointer"
+                      onClick={() => toggleExpand(partner.carrierName)}
+                    >
+                      <CardDescription className="font-semibold text-black text-xl">
+                        {partner.carrierName}
+                      </CardDescription>
+                      <svg
+                        className={`w-6 h-6 transform transition-transform ${
+                          expandedType === partner.carrierName ? 'rotate-180' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
                     </div>
+                    {expandedType === partner.carrierName && (
+                      <div className="mt-4">
+                        <p className="mb-2">
+                          COD Charges: ₹{partner.codCharges} | COD:{" "}
+                          {partner.codPercentage}
+                        </p>
+                        <div className="overflow-x-auto custom-horizontal-scroll">
+                          <Table className="min-w-full mt-2">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-24">Type</TableHead>
+                                <TableHead className="text-center">
+                                  Within City
+                                </TableHead>
+                                <TableHead className="text-center">
+                                  Within State
+                                </TableHead>
+                                <TableHead className="text-center">
+                                  Metro to Metro
+                                </TableHead>
+                                <TableHead className="text-center">
+                                  NE, J&K, KL, AN
+                                </TableHead>
+                                <TableHead className="text-center">
+                                  Regional
+                                </TableHead>
+                                <TableHead className="text-center">India</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell className="font-medium">
+                                  Forward
+                                </TableCell>
+                                <TableCell>₹{partner.fwd?.withinCity}</TableCell>
+                                <TableCell>₹{partner.fwd?.withinState}</TableCell>
+                                <TableCell>₹{partner.fwd?.metroToMetro}</TableCell>
+                                <TableCell>₹{partner.fwd?.neJkKlAn}</TableCell>
+                                <TableCell>₹{partner.fwd?.Regional}</TableCell>
+                                <TableCell>₹{partner.fwd?.india}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">RTO</TableCell>
+                                <TableCell>₹{partner.rto?.withinCity}</TableCell>
+                                <TableCell>₹{partner.rto?.withinState}</TableCell>
+                                <TableCell>₹{partner.rto?.metroToMetro}</TableCell>
+                                <TableCell>₹{partner.rto?.neJkKlAn}</TableCell>
+                                <TableCell>₹{partner.rto?.Regional}</TableCell>
+                                <TableCell>₹{partner.rto?.india}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium">
+                                  Additional Weight
+                                </TableCell>
+                                <TableCell>₹{partner.addWt?.withinCity}</TableCell>
+                                <TableCell>₹{partner.addWt?.withinState}</TableCell>
+                                <TableCell>
+                                  ₹{partner.addWt?.metroToMetro}
+                                </TableCell>
+                                <TableCell>₹{partner.addWt?.neJkKlAn}</TableCell>
+                                <TableCell>₹{partner.addWt?.Regional}</TableCell>
+                                <TableCell>₹{partner.addWt?.india}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </CardContent>
