@@ -20,6 +20,7 @@ const CloneOrder = ({
   setIsCloneDialogOpen,
 }) => {
   const [step, setStep] = useState(1);
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     if (cloneOrder?.orderType === "prepaid") {
@@ -49,23 +50,69 @@ const CloneOrder = ({
     }
   }, [cloneOrder?.collectableValue, cloneOrder?.declaredValue]);
 
+  // Add validation for pincode, mobile, and dimensions
+  useEffect(() => {
+    if (cloneOrder) {
+      const errors = {};
+
+      // Pincode validation
+      if (cloneOrder.pincode && cloneOrder.pincode.length > 6) {
+        errors.pincode = "Pincode cannot be greater than 6 digits";
+      }
+
+      // Mobile validation
+      if (cloneOrder.mobile && cloneOrder.mobile.length > 10) {
+        errors.mobile = "Mobile number cannot be greater than 10 digits";
+      }
+
+      // Actual weight validation
+      if (cloneOrder.actualWeight <= 0) {
+        errors.actualWeight = "Actual weight must be greater than 0";
+      }
+
+      // Declared value validation
+      if (cloneOrder.declaredValue <= 0) {
+        errors.declaredValue = "Declared value must be greater than 0";
+      }
+
+      setValidationErrors(errors);
+    }
+  }, [cloneOrder]);
+
+  // Add effect to calculate volumetric weight
+  useEffect(() => {
+    if (cloneOrder) {
+      const length = parseFloat(cloneOrder.length) || 0;
+      const breadth = parseFloat(cloneOrder.breadth) || 0;
+      const height = parseFloat(cloneOrder.height) || 0;
+      
+      const volumetricWeight = (length * breadth * height) / 5000;
+      
+      setCloneOrder(prev => ({
+        ...prev,
+        volumetricWeight: volumetricWeight.toFixed(2)
+      }));
+    }
+  }, [cloneOrder?.length, cloneOrder?.breadth, cloneOrder?.height]);
+
   const handleCloneOrder = async () => {
-    console.log(cloneOrder);
+    // Check for validation errors before saving
+    if (Object.keys(validationErrors).length > 0) {
+      console.error("Validation errors:", validationErrors);
+      return;
+    }
+
     try {
       const response = await axiosInstance.post(
         "/orders/create-forward-order",
         { order: cloneOrder }
       );
       if (response.data.success) {
-        setCreateForwardSingleOrder(false);
-        fetchOrders();
-        // toast.success('Order added successfully!');
+        setIsCloneDialogOpen(false);
       }
     } catch (e) {
       console.log(e);
-      // toast.error('Unable to create order, try again.');
     }
-    setIsCloneDialogOpen(false);
   };
 
   return (
@@ -147,7 +194,11 @@ const CloneOrder = ({
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                maxLength={6}
               />
+              {validationErrors.pincode && (
+                <p className="text-sm text-red-500">{validationErrors.pincode}</p>
+              )}
             </div>
             <div className="flex flex-col pb-4 w-[40%]">
               <label>Invoice Number</label>
@@ -193,12 +244,21 @@ const CloneOrder = ({
             </div>
             <div className="flex flex-col">
               <label>Mobile</label>
-              <Input
-                value={cloneOrder.mobile}
+              <input
+                type="text"
+                value={cloneOrder?.mobile || ""}
                 onChange={(e) =>
-                  setCloneOrder({ ...cloneOrder, mobile: e.target.value })
+                  setCloneOrder({
+                    ...cloneOrder,
+                    mobile: e.target.value,
+                  })
                 }
+                className="border px-2 py-1 rounded-lg"
+                maxLength={10}
               />
+              {validationErrors.mobile && (
+                <p className="text-sm text-red-500">{validationErrors.mobile}</p>
+              )}
             </div>
           </div>
         )}
@@ -214,11 +274,16 @@ const CloneOrder = ({
                 onChange={(e) =>
                   setCloneOrder({
                     ...cloneOrder,
-                    length: e.target.value,
+                    length: parseFloat(e.target.value) || 0,
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                min="0.01"
+                step="0.01"
               />
+              {validationErrors.length && (
+                <p className="text-sm text-red-500">{validationErrors.length}</p>
+              )}
             </div>
 
             <div className="flex flex-col pb-4 w-[40%]">
@@ -229,11 +294,16 @@ const CloneOrder = ({
                 onChange={(e) =>
                   setCloneOrder({
                     ...cloneOrder,
-                    breadth: e.target.value,
+                    breadth: parseFloat(e.target.value) || 0,
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                min="0.01"
+                step="0.01"
               />
+              {validationErrors.breadth && (
+                <p className="text-sm text-red-500">{validationErrors.breadth}</p>
+              )}
             </div>
 
             <div className="flex flex-col pb-4 w-[40%]">
@@ -244,11 +314,16 @@ const CloneOrder = ({
                 onChange={(e) =>
                   setCloneOrder({
                     ...cloneOrder,
-                    height: e.target.value,
+                    height: parseFloat(e.target.value) || 0,
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                min="0.01"
+                step="0.01"
               />
+              {validationErrors.height && (
+                <p className="text-sm text-red-500">{validationErrors.height}</p>
+              )}
             </div>
             <div className="flex flex-col pb-4 w-[40%]">
               <label>Collectable Value (₹)</label>
@@ -275,16 +350,21 @@ const CloneOrder = ({
             <div className="flex flex-col pb-4 w-[40%]">
               <label>Declared Value (₹)</label>
               <input
-                type="text"
+                type="number"
                 value={cloneOrder?.declaredValue || ""}
                 onChange={(e) =>
                   setCloneOrder({
                     ...cloneOrder,
-                    declaredValue: e.target.value,
+                    declaredValue: parseFloat(e.target.value) || 0,
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                min="0.01"
+                step="0.01"
               />
+              {validationErrors.declaredValue && (
+                <p className="text-sm text-red-500">{validationErrors.declaredValue}</p>
+              )}
             </div>
             <div className="flex flex-col pb-4 w-[40%]">
               <label>Description</label>
@@ -331,13 +411,8 @@ const CloneOrder = ({
               <input
                 type="number"
                 value={cloneOrder?.volumetricWeight || ""}
-                onChange={(e) =>
-                  setCloneOrder({
-                    ...cloneOrder,
-                    volumetricWeight: e.target.value,
-                  })
-                }
-                className="border px-2 py-1 rounded-lg"
+                readOnly
+                className="border px-2 py-1 rounded-lg bg-gray-100"
               />
             </div>
             <div className="flex flex-col pb-4 w-[40%]">
@@ -348,11 +423,16 @@ const CloneOrder = ({
                 onChange={(e) =>
                   setCloneOrder({
                     ...cloneOrder,
-                    actualWeight: e.target.value,
+                    actualWeight: parseFloat(e.target.value) || 0,
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                min="0.01"
+                step="0.01"
               />
+              {validationErrors.actualWeight && (
+                <p className="text-sm text-red-500">{validationErrors.actualWeight}</p>
+              )}
             </div>
           </div>
         )}
