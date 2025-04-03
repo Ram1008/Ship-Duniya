@@ -60,14 +60,14 @@ export default function SignUpForm() {
     }
   };
 
-  const handleDownload = () => {
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = fileName || fileUrl.split("/").pop();
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  // const handleDownload = () => {
+  //   const link = document.createElement("a");
+  //   link.href = fileUrl;
+  //   link.download = fileName || fileUrl.split("/").pop();
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   document.body.removeChild(link);
+  // };
 
   // Email OTP functions
   const handleSendEmailOTP = async () => {
@@ -334,7 +334,7 @@ export default function SignUpForm() {
               <Label htmlFor="terms" className="text-sm">
                 I accept the{" "}
                 <span
-                  onClick={handleDownload}
+                  onClick={() => router.push("/terms")}
                   className="text-blue-800 cursor-pointer"
                 >
                   terms and conditions

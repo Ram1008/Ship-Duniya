@@ -170,7 +170,7 @@ const OrdersTable = ({
             <TableHead className="text-left">Pincode</TableHead>
             <TableHead className="text-left">Description</TableHead>
             <TableHead className="text-center">Phone</TableHead>
-            <TableHead className="text-center">Weight</TableHead>
+            <TableHead className="text-center">Weight (grams)</TableHead>
             <TableHead className="text-center">Quantity</TableHead>
             <TableHead className="text-center">Action</TableHead>
           </TableRow>

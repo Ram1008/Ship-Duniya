@@ -13,6 +13,7 @@ import axiosInstance from "@/utils/axios";
 
 const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
   const [step, setStep] = useState(1);
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     if (editOrder?.orderType === "prepaid") {
@@ -40,17 +41,75 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
     }
   }, [editOrder?.collectableValue, editOrder?.declaredValue]);
 
+  // Add validation for pincode, mobile, and dimensions
+  useEffect(() => {
+    if (editOrder) {
+      const errors = {};
+
+      // Pincode validation
+      if (editOrder.pincode && editOrder.pincode.length > 6) {
+        errors.pincode = "Pincode cannot be greater than 6 digits";
+      }
+
+      // Mobile validation
+      if (editOrder.mobile && editOrder.mobile.length > 10) {
+        errors.mobile = "Mobile number cannot be greater than 10 digits";
+      }
+
+      // Length validation
+      if (editOrder.length <= 0) {
+        errors.length = "Length must be greater than 0";
+      }
+
+      // Breadth validation
+      if (editOrder.breadth <= 0) {
+        errors.breadth = "Breadth must be greater than 0";
+      }
+
+      // Height validation
+      if (editOrder.height <= 0) {
+        errors.height = "Height must be greater than 0";
+      }
+
+      // Declared value validation
+      if (editOrder.declaredValue <= 0) {
+        errors.declaredValue = "Declared value must be greater than 0";
+      }
+
+      setValidationErrors(errors);
+    }
+  }, [editOrder]);
+
+  // Add effect to calculate volumetric weight
+  useEffect(() => {
+    if (editOrder) {
+      const length = parseFloat(editOrder.length) || 0;
+      const breadth = parseFloat(editOrder.breadth) || 0;
+      const height = parseFloat(editOrder.height) || 0;
+      
+      const volumetricWeight = (length * breadth * height) / 5000;
+      
+      setEditOrder(prev => ({
+        ...prev,
+        volumetricWeight: volumetricWeight.toFixed(2)
+      }));
+    }
+  }, [editOrder?.length, editOrder?.breadth, editOrder?.height]);
+
   const handleEdit = async () => {
-    // Save logic here
-    console.log("Order updated:", editOrder);
-    try{
-      const response = await axiosInstance.put(`/orders/${editOrder._id}`, editOrder);
-      console.log(response)
-    }catch(err){
-      console.log(err)
+    // Check for validation errors before saving
+    if (Object.keys(validationErrors).length > 0) {
+      console.error("Validation errors:", validationErrors);
+      return;
     }
 
-    setIsEditing(false);
+    try {
+      const response = await axiosInstance.put(`/orders/${editOrder._id}`, editOrder);
+      console.log(response);
+      setIsEditing(false);
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   return (
@@ -136,7 +195,11 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                maxLength={6}
               />
+              {validationErrors.pincode && (
+                <p className="text-sm text-red-500">{validationErrors.pincode}</p>
+              )}
             </div>
             <div className="flex flex-col pb-4 w-[40%]">
               <label>Invoice Number</label>
@@ -191,8 +254,12 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
                     mobile: e.target.value,
                   })
                 }
-                className="border px-2 py-1 rounded-lg "
+                className="border px-2 py-1 rounded-lg"
+                maxLength={10}
               />
+              {validationErrors.mobile && (
+                <p className="text-sm text-red-500">{validationErrors.mobile}</p>
+              )}
             </div>
           </div>
         )}
@@ -207,11 +274,16 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
                 onChange={(e) =>
                   setEditOrder({
                     ...editOrder,
-                    length: e.target.value,
+                    length: parseFloat(e.target.value) || 0,
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                min="0.01"
+                step="0.01"
               />
+              {validationErrors.length && (
+                <p className="text-sm text-red-500">{validationErrors.length}</p>
+              )}
             </div>
 
             <div className="flex flex-col pb-4 w-[40%]">
@@ -222,11 +294,16 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
                 onChange={(e) =>
                   setEditOrder({
                     ...editOrder,
-                    breadth: e.target.value,
+                    breadth: parseFloat(e.target.value) || 0,
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                min="0.01"
+                step="0.01"
               />
+              {validationErrors.breadth && (
+                <p className="text-sm text-red-500">{validationErrors.breadth}</p>
+              )}
             </div>
 
             <div className="flex flex-col pb-4 w-[40%]">
@@ -237,11 +314,16 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
                 onChange={(e) =>
                   setEditOrder({
                     ...editOrder,
-                    height: e.target.value,
+                    height: parseFloat(e.target.value) || 0,
                   })
                 }
                 className="border px-2 py-1 rounded-lg"
+                min="0.01"
+                step="0.01"
               />
+              {validationErrors.height && (
+                <p className="text-sm text-red-500">{validationErrors.height}</p>
+              )}
             </div>
             <div className="flex flex-col pb-4 w-[40%]">
               <label>Collectable Value (₹)</label>
@@ -273,12 +355,16 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
                 onChange={(e) =>
                   setEditOrder({
                     ...editOrder,
-                    declaredValue: e.target.value,
+                    declaredValue: parseFloat(e.target.value) || 0,
                   })
                 }
-                step="0.01" // Allow decimal values
+                step="0.01"
+                min="0.01"
                 className="border px-2 py-1 rounded-lg"
               />
+              {validationErrors.declaredValue && (
+                <p className="text-sm text-red-500">{validationErrors.declaredValue}</p>
+              )}
             </div>
             <div className="flex flex-col pb-4 w-[40%]">
               <label>Description</label>
@@ -326,13 +412,8 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
               <input
                 type="number"
                 value={editOrder?.volumetricWeight || ""}
-                onChange={(e) =>
-                  setEditOrder({
-                    ...editOrder,
-                    volumetricWeight: e.target.value,
-                  })
-                }
-                className="border px-2 py-1 rounded-lg"
+                readOnly
+                className="border px-2 py-1 rounded-lg bg-gray-100"
               />
             </div>
             <div className="flex flex-col pb-4 w-[40%]">

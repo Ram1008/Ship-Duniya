@@ -58,7 +58,7 @@ const Footer = () => {
             <div className="flex flex-col space-y-1">
               <button
                 onClick={() =>
-                  handleDownload(termsFile, "TermsAndConditions.docx")
+                  router.push("/terms")
                 }
                 className=" transition-colors"
               >

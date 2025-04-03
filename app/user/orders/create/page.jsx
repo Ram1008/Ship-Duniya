@@ -212,8 +212,6 @@ export default function ShippingOrder() {
         });
         // First navigate to orders page
         router.push("/user/orders");
-        // Then force a hard refresh to ensure we get the latest data
-        window.location.reload();
       }
     } catch (e) {
       console.error(e);
