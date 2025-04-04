@@ -1,19 +1,26 @@
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/context/AuthContext";
+import { OrdersProvider } from "@/context/OrdersContext";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Ship Duniya",
-  description: "Your one-stop shipping and logistics platform.", // Update with your actual description
-  icons: {
-    icon: "/ShipDuniyaIcon.jpg"
-  },
+  title: "ShipBazzar",
+  description: "ShipBazzar - Your Shipping Partner",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
-        
-        {children}
+      <body className={inter.className}>
+        <AuthProvider>
+          <OrdersProvider>
+            {children}
+            <Toaster />
+          </OrdersProvider>
+        </AuthProvider>
       </body>
     </html>
   );

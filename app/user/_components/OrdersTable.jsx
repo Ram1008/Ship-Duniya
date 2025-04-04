@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,9 +10,7 @@ import {
 import { CopyPlusIcon, EditIcon, ShipIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import axiosInstance from "@/utils/axios";
-
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import CloneOrder from "./CloneOrder";
 import EditOrder from "./EditOrder";
 
@@ -35,6 +33,11 @@ const OrdersTable = ({
   const [step, setStep] = useState(1); 
   const [cloneOrder, setCloneOrder] = useState({}); 
   const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState([]);
+
+  // Check if selectedOrder is an array or a single object
+  const isSelectedOrderArray = Array.isArray(selectedOrder);
+  const selectedOrderIds = isSelectedOrderArray ? selectedOrder : (selectedOrder ? [selectedOrder._id] : []);
 
   const viewDetails = (order) => {
     setSelectedOrder(order);
@@ -42,8 +45,7 @@ const OrdersTable = ({
   };
 
   const handleShipOrder = (id) => {
-    const newOrder = [id];
-    setSelectedOrder(newOrder);
+    setSelectedOrder([id]);
     setIsShipping(true);
   };
 
@@ -76,9 +78,14 @@ const OrdersTable = ({
   };
 
   const toggleSelectOrder = (id) => {
-    setSelectedOrder((prev) =>
-      prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
-    );
+    if (isSelectedOrderArray) {
+      setSelectedOrder((prev) =>
+        prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
+      );
+    } else {
+      // If selectedOrder is not an array, we need to convert it to an array
+      setSelectedOrder([id]);
+    }
   };
 
   const toggleSelectAll = () => {
@@ -110,7 +117,7 @@ const OrdersTable = ({
   };
 
   const handleCloneClick = () => {
-    if (selectedOrder.length === 0) {
+    if (selectedOrderIds.length === 0) {
       toast({
         title: "Please select an order to clone.",
         variant: "destructive",
@@ -118,7 +125,7 @@ const OrdersTable = ({
       return;
     }
 
-    const orderToClone = orders.find((order) => order._id === selectedOrder[0]); // Use find for single order
+    const orderToClone = orders.find((order) => order._id === selectedOrderIds[0]); // Use find for single order
 
     if (!orderToClone) {
       toast({
@@ -135,7 +142,7 @@ const OrdersTable = ({
   return (
     <div className="relative">
       <div className="h-10 py-2 mb-2">
-        {selectedOrder.length > 0 && (
+        {selectedOrderIds.length > 0 && (
           <div className="flex gap-2">
             <Button variant="export" onClick={() => setIsShipping(true)}>
               <span>Ship Bulk</span>
@@ -143,7 +150,7 @@ const OrdersTable = ({
             <Button variant="export" onClick={() => setIsShipping(true)}>
               <span>Reverse order</span>
             </Button>
-            {selectedOrder.length === 1 && (
+            {selectedOrderIds.length === 1 && (
               <Button variant="export" onClick={handleCloneClick}>
                 <CopyPlusIcon className="mr-2 h-4 w-4" />
                 <span>Clone Order</span>
@@ -181,7 +188,7 @@ const OrdersTable = ({
               <TableCell className="text-left">
                 <input
                   type="checkbox"
-                  checked={selectedOrder.includes(order._id)}
+                  checked={selectedOrderIds.includes(order._id)}
                   onChange={() => toggleSelectOrder(order._id)}
                 />
               </TableCell>
@@ -208,7 +215,10 @@ const OrdersTable = ({
                 {order.mobile || order.MOBILE}
               </TableCell>
               <TableCell className="text-center">
-                {Math.max(order.actualWeight || 0, order.volumetricWeight || 0)}
+                {Math.max(
+                  order.actualWeight || 0, 
+                  ((order.length || 0) * (order.breadth || 0) * (order.height || 0) / 5) || 0
+                )}
               </TableCell>
               <TableCell className="text-center">{order.quantity}</TableCell>
               <TableCell className="text-center my-2 space-x-2 flex justify-center item-center">

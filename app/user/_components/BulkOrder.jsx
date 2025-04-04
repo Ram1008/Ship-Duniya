@@ -42,11 +42,8 @@ export default function BulkUploadComponent({ isOpen, setIsOpen, onUpload }) {
   
     try {
       // Create FormData and append the file
-      const formData = new FormData();
-      formData.append('file', file);
       
-      // Call the onUpload function with the FormData
-      await onUpload(formData);
+      await onUpload(file);
       
       setSuccess("File uploaded successfully")
       setFile(null)

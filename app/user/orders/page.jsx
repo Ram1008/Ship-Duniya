@@ -1,8 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState, useEffect, useMemo, useCallback } from "react";
-import axiosInstance from "@/utils/axios";
+import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Download, Loader2 } from "lucide-react";
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
@@ -33,20 +32,16 @@ import OrdersTable from "../_components/OrdersTable";
 import OrderView from "../_components/OrderView";
 import OrderForm from "./create/page";
 import { useRouter } from "next/navigation";
+import { useOrders } from "@/context/OrdersContext";
+import axiosInstance from "@/utils/axios";
 
 const OrdersPage = () => {
   const [userType, setUserType] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState([]);
-  const [isShipping, setIsShipping] = useState(false);
   const [viewDetails, setViewDetails] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState({
     from: new Date(2022, 0, 1),
     to: new Date(),
   });
-  const [orderType, setOrderType] = useState("All");
   const [viewShipped, setViewShipped] = useState(false);
   const [viewNotShipped, setViewNotShipped] = useState(false);
   const [createForwardSingleOrder, setCreateForwardSingleOrder] = useState(false);
@@ -58,131 +53,119 @@ const OrdersPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const router = useRouter();
+  
+  // Use the OrdersContext
+  const {
+    loading,
+    searchQuery,
+    setSearchQuery,
+    orderType,
+    setOrderType,
+    selectedOrders,
+    setSelectedOrders,
+    isShipping,
+    setIsShipping,
+    selectedOrder,
+    setSelectedOrder,
+    filteredOrders,
+    fetchOrders,
+    handleForwardBulkOrder,
+    handleReverseBulkOrder
+  } = useOrders();
 
+  // Get user type from localStorage
   useEffect(() => {
-    const controller = new AbortController();
-    const fetchUserData = async () => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
       try {
-        const response = await axiosInstance.get("/users/profile", {
-          signal: controller.signal,
-        });
-        setUserType(response.data.userType)
-      } catch (err) {
-        if (err.name === "CanceledError") {
-          // Request was canceled – no further action needed.
-        } else {
-          console.error("Error fetching user data:", err);
-          setError("Failed to fetch user data");
-        }
-      } finally {
-        setLoading(false);
+        const userData = JSON.parse(storedUser);
+        setUserType(userData.userType);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
       }
-    };
-
-    fetchUserData();
-
-    return () => {
-      controller.abort();
-    };
-  }, []);
-  
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await axiosInstance.get("/orders");
-      setOrders(response.data);
-      console.log(response.data);
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-      toast.error("Error fetching orders");
-    } finally {
-      setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
-
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const orderDate = new Date(order.createdAt);
-      const matchesDateRange =
-        (!dateRange.from || orderDate >= dateRange.from) &&
-        (!dateRange.to || orderDate <= dateRange.to);
-      const matchesOrderType =
-        orderType && orderType !== "All"
-          ? order.orderType?.toLowerCase() === orderType.toLowerCase()
-          : true;
-      const matchesShippedStatus =
-        (viewShipped && order.shipped) ||
-        (viewNotShipped && !order.shipped) ||
-        (!viewShipped && !viewNotShipped);
-      const matchesSearchQuery =
-        searchQuery === "" ||
-        order.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (order.telephone &&
-          order.telephone.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (order.mobile &&
-          order.mobile.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      return (
-        matchesDateRange &&
-        matchesOrderType &&
-        matchesShippedStatus &&
-        matchesSearchQuery
-      );
-    });
-  }, [orders, dateRange, orderType, viewShipped, viewNotShipped, searchQuery]);
-
-  // Separate not shipped and shipped orders
-  const notShippedOrders = useMemo(() => {
-    return filteredOrders.filter(order => !order.shipped && !order.isCancelled).sort((a, b) => {
-      const weightA = Math.max(a.actualWeight || 0, a.volumetricWeight || 0);
-      const weightB = Math.max(b.actualWeight || 0, b.volumetricWeight || 0);
-      return weightA - weightB;
-    });
-  }, [filteredOrders]);
-
-  const shippedOrders = useMemo(() => {
-    return filteredOrders.filter(order => order.shipped && !order.isCancelled);
-  }, [filteredOrders]);
-
-  const cancelledOrders = useMemo(() => {
-    return filteredOrders.filter(order => order.isCancelled);
-  }, [filteredOrders]);
-
-  // Calculate pagination for not shipped orders
-  const notShippedPages = Math.ceil(notShippedOrders.length / pageSize);
-  const shippedPages = Math.ceil(shippedOrders.length / pageSize);
-  
-  // Combine orders with not shipped first, maintaining page size
+  // Calculate paginated orders
   const paginatedOrders = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
+    // Apply additional filters for shipped/not shipped orders
+    let filteredOrdersWithStatus = [...filteredOrders];
     
-    // If we're within the not shipped orders pages
-    if (currentPage <= notShippedPages) {
-      return notShippedOrders.slice(start, start + pageSize);
+    // Filter by shipped status if needed
+    if (viewShipped) {
+      filteredOrdersWithStatus = filteredOrdersWithStatus.filter(order => order.shipped);
+    } else if (viewNotShipped) {
+      filteredOrdersWithStatus = filteredOrdersWithStatus.filter(order => !order.shipped && !order.isCancelled);
     }
     
-    // If we're within the shipped orders pages
-    if (currentPage <= notShippedPages + shippedPages) {
-      const shippedStart = start - notShippedOrders.length;
-      return shippedOrders.slice(shippedStart, shippedStart + pageSize);
+    // Filter by date range
+    if (dateRange.from && dateRange.to) {
+      const fromDate = new Date(dateRange.from);
+      fromDate.setHours(0, 0, 0, 0);
+      
+      const toDate = new Date(dateRange.to);
+      toDate.setHours(23, 59, 59, 999);
+      
+      filteredOrdersWithStatus = filteredOrdersWithStatus.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        return orderDate >= fromDate && orderDate <= toDate;
+      });
     }
     
-    // If we're past both not shipped and shipped orders, show cancelled orders
-    const cancelledStart = start - notShippedOrders.length - shippedOrders.length;
-    return cancelledOrders.slice(cancelledStart, cancelledStart + pageSize);
-  }, [currentPage, pageSize, notShippedOrders, shippedOrders, cancelledOrders, notShippedPages, shippedPages]);
+    // Sort the filtered orders according to the requirements
+    const sortedOrders = [...filteredOrdersWithStatus].sort((a, b) => {
+      // First, sort by status: not shipped first, then booked, then cancelled
+      if (!a.shipped && b.shipped) return -1;
+      if (a.shipped && !b.shipped) return 1;
+      if (a.isCancelled && !b.isCancelled) return 1;
+      if (!a.isCancelled && b.isCancelled) return 1;
+      
+      // For not shipped orders, sort by weight in increasing order
+      if (!a.shipped && !b.shipped) {
+        // Calculate volumetric weight using the formula: length * breadth * height / 5
+        const volWeightA = (a.length || 0) * (a.breadth || 0) * (a.height || 0) / 5;
+        const volWeightB = (b.length || 0) * (b.breadth || 0) * (b.height || 0) / 5;
+        
+        // Use the maximum of actual weight or calculated volumetric weight
+        const weightA = Math.max(a.actualWeight || 0, volWeightA);
+        const weightB = Math.max(b.actualWeight || 0, volWeightB);
+        
+        return weightA - weightB;
+      }
+      
+      // Default sort by date (newest first)
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return sortedOrders.slice(startIndex, endIndex);
+  }, [filteredOrders, currentPage, pageSize, viewShipped, viewNotShipped, dateRange]);
 
-  // Update total items for pagination
-  const totalItems = notShippedOrders.length + shippedOrders.length + cancelledOrders.length;
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, orderType, viewShipped, viewNotShipped, dateRange]);
 
-  const handleBackToList = useCallback(() => {
-    setSelectedOrder([]);
-    setViewDetails(false);
-  }, []);
+  const handleOrderSelect = (orderId) => {
+    setSelectedOrders((prev) =>
+      prev.includes(orderId)
+        ? prev.filter((id) => id !== orderId)
+        : [...prev, orderId]
+    );
+  };
+
+  const handleShipSelected = () => {
+    if (selectedOrders.length === 0) {
+      toast({
+        title: "No orders selected",
+        description: "Please select at least one order to ship",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsShipping(true);
+  };
 
   const handleDownloadExcel = async () => {
     try {
@@ -258,65 +241,6 @@ const OrdersPage = () => {
     } catch (error) {
       console.error("Error exporting to PDF:", error);
       toast.error("Failed to export PDF");
-    }
-  };
-
-  
-
-  const createReverseOrder = async (values) => {
-    try {
-      const response = await axiosInstance.post(
-        "/orders/create-reverse-order",
-        { order: values }
-      );
-      if (response.data.success) {
-        setCreateReverseSingleOrder(false);
-        fetchOrders();
-        toast.success("Order added successfully!");
-      }
-    } catch (e) {
-      console.error(e);
-      console.error("Unable to create order, try again.");
-    }
-  };
-
-  const handleForwardBulkOrder = async (formData) => {
-    try {
-      const response = await axiosInstance.post(
-        "/orders/create-forward-order",
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      
-      if (response.status === 200) {
-        toast({
-          title: "Bulk order processed successfully!",
-          variant: "success",
-        });
-        fetchOrders();
-      }
-    } catch (e) {
-      console.error(e);
-      toast({
-        title: "Error processing bulk order",
-        description: e.response?.data?.message || "Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleReverseBulkOrder = async (file) => {
-    try {
-      // Add API call or processing for reverse bulk order if needed
-      console.log(file);
-      toast.success("Reverse bulk order processed successfully!");
-    } catch (e) {
-      console.error(e);
-      toast.error("Error processing reverse bulk order.");
     }
   };
 
@@ -424,10 +348,10 @@ const OrdersPage = () => {
                 <Button
                   variant="export"
                   className="h-8"
-                    onClick={() => {
-                      setCreateForwardSingleOrder(true);
-                      router.push("/user/orders/create");
-                    }}
+                  onClick={() => {
+                    setCreateForwardSingleOrder(true);
+                    router.push("/user/orders/create");
+                  }}
                 >
                   <span>+ Create Order </span>
                 </Button>
@@ -443,7 +367,7 @@ const OrdersPage = () => {
             <OrdersTable
               orders={paginatedOrders}
               loading={loading}
-              setLoading={setLoading}
+              setLoading={() => {}}
               setViewDetails={setViewDetails}
               selectedOrder={selectedOrder}
               setSelectedOrder={setSelectedOrder}
@@ -452,7 +376,7 @@ const OrdersPage = () => {
             />
             <Pagination
               currentPage={currentPage}
-              totalItems={totalItems}
+              totalItems={filteredOrders.length}
               pageSize={pageSize}
               onPageChange={setCurrentPage}
             />
@@ -488,44 +412,16 @@ const OrdersPage = () => {
           selectedOrder={selectedOrder}
           setSelectedOrder={setSelectedOrder}
           userType={userType}
-          handleBookShipment={handleBookShipment}
         />
       );
     }
     return renderOrderList();
   };
 
-  const goBack = () => {
-    setSelectedOrder([]);
-    setIsShipping(false);
+  const handleBackToList = () => {
+    setSelectedOrder(null);
+    setViewDetails(false);
   };
-  
-  const handleBookShipment = async (selectedPartner, shippingInfo) => {
-    if (!selectedPartner) return;
-    try {
-      setLoading(true);
-      const response = await axiosInstance.post(
-        "/shipping/create-forward-shipping",
-        {
-          orderIds: selectedOrder,
-          pickup: shippingInfo.pickUp,
-          rto: shippingInfo.rto,
-          selectedPartner: selectedPartner.carrierName +" " +selectedPartner.serviceType,
-          userType: userType,
-        }
-      );
-
-      if (response.status === 200) {
-        toast({ title: "Shipment booked successfully!", variant: "success" });
-        fetchOrders();
-      }
-    } catch (error) {
-      toast({ title: "Failed to book shipment", variant: "destructive" });
-    } finally {
-      setLoading(false);
-      goBack();
-    }
-  }
 
   return (
     <div className="space-y-6">

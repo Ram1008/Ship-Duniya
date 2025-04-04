@@ -20,6 +20,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import axiosInstance from "@/utils/axios";
+import { useOrders } from "@/context/OrdersContext";
 
 const orderFormSchema = z
   .object({
@@ -31,7 +32,10 @@ const orderFormSchema = z
     consigneeAddress2: z.string().optional(),
     city: z.string().min(1, "Destination City is required"),
     state: z.string().min(1, "State is required"),
-    pincode: z.string().min(1, "Pincode is required"),
+    pincode: z.string()
+      .min(6, "Pincode must be 6 digits")
+      .max(6, "Pincode must be 6 digits")
+      .regex(/^\d{6}$/, "Pincode must contain exactly 6 digits"),
     telephone: z.string().optional(),
     mobile: z
       .string()
@@ -105,6 +109,7 @@ export default function ShippingOrder() {
   const [orderFormStep, setOrderFormStep] = useState(0);
   const router = useRouter();
   const { toast } = useToast();
+  const { fetchOrders } = useOrders();
 
   const orderForm = useForm({
     mode: "onBlur", // Validate on blur instead of onChange
@@ -210,7 +215,11 @@ export default function ShippingOrder() {
           title: "Order created successfully!",
           variant: "success",
         });
-        // First navigate to orders page
+        
+        // Fetch orders using the context
+        fetchOrders();
+        
+        // Navigate back to orders page
         router.push("/user/orders");
       }
     } catch (e) {
@@ -265,7 +274,7 @@ export default function ShippingOrder() {
       (orderForm.watch("length") *
         orderForm.watch("breadth") *
         orderForm.watch("height")) /
-      5000;
+      5;
     orderForm.setValue("volumetricWeight", parseFloat(vW));
   }, [
     orderForm.watch("length"),
