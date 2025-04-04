@@ -1,10 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import axiosInstance from "@/utils/axios";
-import Link from "next/link";
 
 const ShipmentDetails = ({ details, isTracking = false, handleBackToList }) => {
   console.log(details);
@@ -131,6 +129,10 @@ const ShipmentDetails = ({ details, isTracking = false, handleBackToList }) => {
                 <dd>{details[0].orderIds[0].orderType || "N/A"}</dd>
               </div>
               <div>
+                <dt>AWB Number</dt>
+                <dd>{details[0].awbNumber || "N/A"}</dd>
+              </div>
+              <div>
                 <dt>Warehouse Address</dt>
                 <dd>{details[0].pickupAddress.addressLine1 || "N/A"}</dd>
               </div>
@@ -147,8 +149,20 @@ const ShipmentDetails = ({ details, isTracking = false, handleBackToList }) => {
                 <dd>{details[0].partnerDetails.name || "N/A"}</dd>
               </div>
               <div>
+                <dt>Item Description</dt>
+                <dd>{details[0].orderIds[0].itemDescription|| "N/A"}</dd>
+              </div>
+              <div>
                 <dt>Quantity</dt>
                 <dd>{details[0].orderIds[0].quantity || "N/A"}</dd>
+              </div>
+              <div>
+                <dt>Per product price</dt>
+                <dd>{details[0].orderIds[0].declaredValue / details[0].orderIds[0].quantity || "N/A"}</dd>
+              </div>
+              <div>
+                <dt>Total price</dt>
+                <dd>{details[0].orderIds[0].declaredValue || "N/A"}</dd>
               </div>
               <div>
                 <dt>Status</dt>

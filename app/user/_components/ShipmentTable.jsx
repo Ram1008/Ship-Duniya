@@ -64,8 +64,6 @@ const ShipmentTable = ({
   const [selectAll, setSelectAll] = useState(false);
   const [open, setOpen] = useState(false);
 
-  console.log("shipment:", shipments);
-
   const handleSelect = (type) => {
     setShipmentStatus(type); // Set status
     setOpen(false); // Close dropdown
@@ -133,26 +131,60 @@ const ShipmentTable = ({
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Shipments");
     const headings = [
-      "shipmentId",
+      "Order Id",
+      "shipment Id",
+      "Order Date",
+      "Shipment Date",
+      "COD Collectable Value",
+      "Payment",
+      "Payment Method",
+      "Courier Name",
       "awbNumber",
-      "date",
-      "consignee",
-      "pincode",
-      "courierName",
-      "orderId",
-      "status",
+      "Consignee",
+      "Phone",
+      "Address 1",
+      "Address 2",
+      "City",
+      "State",
+      "Country",
+      "Pin code",
+      "Warehouse Name",
+      "Warehouse City",
+      "Warehouse State",
+      "Warehouse Pincode",
+      "Status",
+      "Product Description",
+      "Quantity",
+      "Price",
     ];
     worksheet.addRow(headings);
     filteredShippings.forEach((shipment) => {
       worksheet.addRow([
-        shipment.SHIPMENT_ID,
-        shipment.awbNumber,
+        shipment.orderIds[0].orderId,
+        shipment.shipmentId,
+        new Date(shipment.orderIds[0].createdAt).toLocaleDateString(),
         new Date(shipment.createdAt).toLocaleDateString(),
-        shipment.consignee,
-        shipment.pincode,
+        shipment.orderIds[0].collectableValue,
+        shipment.partnerDetails.charges,
+        shipment.orderIds[0].orderType,
         shipment.partnerDetails.name,
-        shipment.orderId,
+        shipment.awbNumber,
+        shipment.consignee,
+        shipment.orderIds[0].mobile,
+        shipment.orderIds[0].consigneeAddress1,
+        shipment.orderIds[0].consigneeAddress2,
+        shipment.orderIds[0].city,
+        shipment.orderIds[0].state,
+        shipment.orderIds[0].country,
+        shipment.orderIds[0].pincode,
+        shipment.pickupAddress?.name,
+        shipment.pickupAddress?.city,
+        shipment.pickupAddress?.state,
+        shipment.pickupAddress?.pincode,
         shipment.status,
+        shipment.orderIds[0].itemDescription,
+        shipment.orderIds[0].quantity,
+        shipment.orderIds[0].declaredValue,
       ]);
     });
 
@@ -268,37 +300,6 @@ const ShipmentTable = ({
     doc.text("SIGNATURE / STAMP", pageWidth - margin - 30, yPosition + 40);
 
     doc.save("shipment_pick_list.pdf");
-  };
-
-  // Helper function to convert Blob to Data URL
-  // Helper function: Convert blob to a cleaned Data URL using a canvas
-  const blobToCleanDataURL = (blob) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result;
-        const img = new Image();
-        // Setting crossOrigin can help avoid CORS issues
-        img.crossOrigin = "Anonymous";
-        img.onload = function () {
-          // Create a canvas with the same dimensions as the image
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0);
-          // Generate a new, clean Data URL from the canvas
-          const cleanDataUrl = canvas.toDataURL("image/png");
-          resolve(cleanDataUrl);
-        };
-        img.onerror = () =>
-          reject(new Error("Image failed to load for canvas conversion."));
-        img.src = dataUrl;
-      };
-      reader.onerror = () =>
-        reject(new Error("Failed to convert blob to Data URL."));
-      reader.readAsDataURL(blob);
-    });
   };
 
   const handleGenerateInvoice = async () => {
@@ -498,151 +499,150 @@ const ShipmentTable = ({
     doc.save("tax-invoice.pdf");
   };
 
+  const loadImageAsync = (src) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+    });
+  };
+  
   const handleLabeling = async () => {
     try {
+      // Check if selectedShipments and shipments are populated
+      console.log("Selected shipments:", selectedShipments);
+      console.log("Shipments data:", shipments);
+  
       const selectedAwbNumbers = selectedShipments
         .map((id) => shipments.find((s) => s._id === id)?.awbNumber)
         .filter((awb) => awb !== undefined);
-
-      const response = await axiosInstance
-        .post("/label", {
-          awbNumbers: selectedAwbNumbers,
-        })
-        .catch((err) => {
-          console.error("Error fetching label data:", err);
-          alert("Failed to generate labels. Please try again.");
-          return { data: { labels: [] } };
-        });
-
+  
+      console.log("Selected AWB Numbers:", selectedAwbNumbers);
+  
+      const response = await axiosInstance.post("/label", {
+        awbNumbers: selectedAwbNumbers,
+      });
+      console.log("Label response:", response.data);
+  
       if (!response.data.labels || response.data.labels.length === 0) {
         console.error("No label data received from server");
         alert("No label data available.");
         return;
       }
-
+  
       const generateBarcodeDataUrl = (text) => {
         const canvas = document.createElement("canvas");
-        JsBarcode(canvas, text, {
-          format: "CODE128",
-          width: 2,
-          height: 50,
-          displayValue: false,
-        });
+        try {
+          JsBarcode(canvas, text, {
+            format: "CODE128",
+            width: 2,
+            height: 50,
+            displayValue: false,
+          });
+        } catch (barcodeError) {
+          console.error("Error generating barcode for", text, barcodeError);
+        }
         return canvas.toDataURL("image/png");
       };
-
+  
       const logoUrl = "../../../public/shipDuniyaIcon.jpg";
-
+  
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
-
+  
       for (let i = 0; i < response.data.labels.length; i++) {
         const labelData = response.data.labels[i];
         const shipment = shipments.find((s) => s.awbNumber === labelData.awb);
-        console.log(shipment);
+        console.log(`Processing label ${i + 1} for AWB:`, labelData.awb);
+  
         if (!shipment) {
           console.error(`Shipment not found for AWB: ${labelData.awb}`);
           continue;
         }
-
+  
+        // Ensure shipment.orderIds and shipment.shipmentIds exist and have at least one element
+        if (
+          !shipment.orderIds ||
+          shipment.orderIds.length === 0 ||
+          !shipment.shipmentId
+        ) {
+          console.error("Missing orderIds or shipmentIds for shipment:", shipment);
+          continue;
+        }
+  
         if (i > 0) doc.addPage();
-
-        // Generate barcodes
+  
         const orderId = shipment.shipmentId || "N/A";
         const awbNumber = shipment.awbNumber || "0123456789";
-
-        // Generate barcode data URLs
         const orderIdBarcodeUrl = generateBarcodeDataUrl(orderId);
         const awbBarcodeUrl = generateBarcodeDataUrl(awbNumber);
-        // const logoImageToPut =
-
+  
         // To section
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
         doc.text("To:", 15, 20);
-
-        // Recipient address - Make this all caps and bold
+  
         doc.setFont("helvetica", "bold");
-
-        // Get full address from shipment
         const fullAddress = shipment.pickupAddress?.addressLine1 || "";
         const addressLines = doc.splitTextToSize(fullAddress, 140);
-
         let currentY = 30;
-        addressLines.forEach((line, index) => {
+        addressLines.forEach((line) => {
           doc.text(line.toUpperCase(), 15, currentY);
           currentY += 5;
         });
-
-        doc.text(
-          `India - ${shipment.pickupAddress?.pincode || "N/A"}`,
-          15,
-          currentY
-        );
+        doc.text(`India - ${shipment.pickupAddress?.pincode || "N/A"}`, 15, currentY);
         currentY += 5;
         doc.text(
-          `MOBILE NO: ${
-            shipment.pickupAddress?.mobile || labelData.mobile || "N/A"
-          }`,
+          `MOBILE NO: ${shipment.pickupAddress?.mobile || labelData.mobile || "N/A"}`,
           15,
           currentY
         );
-
+  
         // Horizontal line after address
         doc.line(15, currentY + 25, 185, currentY + 25);
-
-        // Logo box
-        doc.rect(150, 15, 45, 45); // Draw square box
-        doc.addImage(
-          "https://storage.googleapis.com/ship-duniya_bucket/Images/shipDuniyaIcon.jpg",
-          "JPEG", // or "PNG" if your image is in PNG format
-          150, // x-coordinate (matches the square's x position)
-          15, // y-coordinate (matches the square's y position)
-          45, // width (same as the square's width)
-          45 // height (same as the square's height)
-        );
-
+  
+        // Logo box and image will be added later
+        doc.rect(150, 15, 45, 45);
+  
         // COD and weight section
-        doc.setFontSize(18).setFont("helvetica", "bold").text(shipment.orderIds[0].orderType === "COD" ? "COD" : "PREPAID", 20, 80);
+        doc.setFontSize(18)
+          .setFont("helvetica", "bold")
+          .text(shipment.orderIds[0].orderType === "COD" ? "COD" : "PREPAID", 20, 80);
+        const collectableValue =
+          shipment.orderIds[0].collectableValue > 0 ? shipment.orderIds[0].collectableValue : "";
+        doc.text(`${collectableValue}`, 20, 88);
+        doc.text(`${shipment.shipmentIds[0].actualWeight}kg`, 150, 80);
         doc.text(
-          `${shipment.orderIds[0].collectableValue > 0? shipment.orderIds[0].collectableValue: ''}`,
-          20,
-          88
-        );
-
-        doc.text(`${shipment.shipmentIds[0].actualWeight || labelData.weight}kg`, 150, 80);
-        doc.text(
-          shipment.shipmentIds[0].length + "X" + shipment.shipmentIds[0].breadth + "X" + shipment.shipmentIds[0].height,
+          `${shipment.shipmentIds[0].length}X${shipment.shipmentIds[0].breadth}X${shipment.shipmentIds[0].height}`,
           150,
           88
         );
-
+  
         // Horizontal line after COD/weight
         doc.line(15, 95, 185, 95);
-
+  
         // Order details
         doc.setFontSize(10).setFont("helvetica", "normal");
         doc.text(`Order id: ${orderId}`, 15, 105);
         doc.text(
-          `Order Date: ${
-            new Date(shipment.createdAt).toLocaleDateString() || "N/A"
-          }`,
+          `Order Date: ${new Date(shipment.createdAt).toLocaleDateString() || "N/A"}`,
           15,
           110
         );
-        doc.text(`Invoice number-${shipment.orderIds[0].invoiceNumber}`, 15, 115);
-
-        // Add Order ID barcode (Aligned on the same row)
+        doc.text(`Invoice number - ${shipment.orderIds[0].invoiceNumber}`, 15, 115);
+  
+        // Add Order ID barcode
         doc.addImage(orderIdBarcodeUrl, "PNG", 120, 105, 60, 15);
         doc.setFontSize(8);
         doc.text(shipment.orderIds[0].orderId, 145, 123);
-
+  
         // Horizontal line after order details
         doc.line(15, 130, 185, 130);
-
+  
         // Destination and courier info
         doc.setFontSize(10);
         doc.text(
@@ -651,23 +651,20 @@ const ShipmentTable = ({
           140
         );
         doc.text(
-          `Courier partner : ${
-            shipment?.partnerDetails?.name || shipment.partnerName || "N/A"
-          }`,
+          `Courier partner: ${shipment.partnerDetails?.name || shipment.partnerName || "N/A"}`,
           15,
           145
         );
-
+  
         // Add AWB barcode - centered
         doc.addImage(awbBarcodeUrl, "PNG", 50, 150, 100, 20);
         doc.setFont("helvetica", "bold");
         doc.text(`AWB NUMBER (${awbNumber})`, 85, 173);
-
+  
         // Product details section
         doc.setFont("helvetica", "normal");
         doc.text("Product details:-", 15, 180);
-
-        // Simplified product table
+  
         const tableHeaders = [
           "SKU",
           "Product Description",
@@ -675,61 +672,53 @@ const ShipmentTable = ({
           "Amount per unit",
           "Total Amount",
           "GST",
-          "Taxable Amount",
+          "Taxable Amount"
         ];
-
-        // Calculate equal column width dynamically
         const colWidth = 170 / tableHeaders.length;
-
         let xPos = 15;
-
-        // Draw table headers with text wrapping
+  
+        // Table headers
         tableHeaders.forEach((header) => {
           doc.rect(xPos, 185, colWidth, 10);
-
-          // Wrap header text if needed
           const wrappedHeader = doc.splitTextToSize(header, colWidth - 2);
           doc.setFont("helvetica", "bold");
-
-          // Position the text with vertical centering
           wrappedHeader.forEach((line, idx) => {
-            doc.text(line, xPos + 2, 190 + idx * 4); // Adjust line spacing
+            doc.text(line, xPos + 2, 190 + idx * 4);
           });
-
           xPos += colWidth;
         });
-
-        // Draw table rows
-        console.log(shipment)
+  
+        // Table rows
         if (shipment.orderIds?.length > 0) {
           shipment.orderIds.forEach((product, j) => {
             xPos = 15;
-
             tableHeaders.forEach((_, k) => {
               doc.rect(xPos, 195 + j * 10, colWidth, 10);
-
-              const value = [
-                "",
+  
+              const amountPerUnit =
+                product.quantity && product.quantity > 0
+                  ? (product.declaredValue / product.quantity).toFixed(2)
+                  : "-";
+              const values = [
+                "", // SKU placeholder
                 product.itemDescription || "-",
-                product.quantity?.toString(),
-                product.declaredValue/ product.quantity || "-",
-                "",
-                product.declaredValue
-              ][k];
-
-              // Wrap content if necessary
+                product.quantity?.toString() || "-",
+                amountPerUnit,
+                "", // Total Amount placeholder
+                product.declaredValue ? product.declaredValue.toString() : "-",
+                "" // Taxable Amount placeholder
+              ];
+              const value = values[k] || "";
               const wrappedValue = doc.splitTextToSize(value, colWidth - 2);
               doc.setFont("helvetica", "normal");
-
               wrappedValue.forEach((line, idx) => {
-                doc.text(line, xPos + 2, 201 + j * 10 + idx * 4); // Adjust line spacing
+                doc.text(line, xPos + 2, 201 + j * 10 + idx * 4);
               });
-
               xPos += colWidth;
             });
           });
         }
-
+  
         // Pickup and return address
         doc.setFont("helvetica", "bold");
         doc.text("Pickup and Return Address:", 15, 215);
@@ -747,8 +736,8 @@ const ShipmentTable = ({
           15,
           230
         );
-
-        // Contact information outside the main border
+  
+        // Contact information
         doc.setFont("helvetica", "bold");
         doc.text("For any query please contact:", 15, 235);
         doc.setFont("helvetica", "normal");
@@ -759,11 +748,11 @@ const ShipmentTable = ({
           15,
           240
         );
-
-        // Draw main border - ending at the mobile number line
+  
+        // Draw main border
         doc.setLineWidth(0.5);
         doc.rect(10, 10, 190, 235);
-
+  
         // Disclaimer box
         doc.rect(15, 255, 175, 17, "S");
         doc.setFontSize(8);
@@ -778,33 +767,38 @@ const ShipmentTable = ({
           265
         );
         doc.text("EXCHANGE/RETURN POLICY.", 17, 270);
-
+  
         // Footer text
         doc.setFontSize(9).setFont("helvetica", "bold");
         doc.text("THIS IS AN AUTO-GENERATED LABEL &", 15, 280);
         doc.text("DOES NOT NEED SIGNATURE", 15, 285);
-
-        // Add powered by logo text
+  
+        // Powered by text and logo
         doc.text("Powered by:-", 140, 280);
-        doc.setTextColor(0, 0, 150); // Set "SHIP" to blue
+        doc.setTextColor(0, 0, 150);
         doc.text("SHIP", 152, 285);
-        doc.setTextColor(255, 0, 0); // Set "DUNIYA" to red
+        doc.setTextColor(255, 0, 0);
         doc.text("DUNIYA", 165, 285);
-        doc.setTextColor(0, 0, 0); // Reset to black
-
-        const img = new Image();
-        img.src = logoUrl;
-        img.onload = () => {
-          doc.addImage(img, "PNG", 135, 285, 20, 20); // Adjust positioning and size as needed
-        };
+        doc.setTextColor(0, 0, 0);
+  
+        // Load and add the logo image asynchronously
+        try {
+          const logoImg = await loadImageAsync(logoUrl);
+          doc.addImage(logoImg, "PNG", 135, 285, 20, 20);
+          console.log("Logo image added successfully");
+        } catch (imgError) {
+          console.error("Error loading logo image:", imgError);
+        }
       }
-
+  
+      console.log("Saving PDF document");
       doc.save("shipping-labels.pdf");
     } catch (error) {
       console.error("Error generating labels:", error);
       alert("An error occurred while generating labels.");
     }
   };
+  
 
   return (
     <>
@@ -978,7 +972,6 @@ const ShipmentTable = ({
                   <TableHead className="text-left">Consignee</TableHead>
                   <TableHead className="text-left">Pincode</TableHead>
                   <TableHead className="text-left">Courier Name</TableHead>
-                  <TableHead className="text-left">Order Details</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -992,7 +985,7 @@ const ShipmentTable = ({
                         onChange={() => toggleSelectShipment(shipment)}
                       />
                     </TableCell>
-                    <TableCell className="text-left font-bold">
+                    <TableCell className="text-left text-blue-400 cursor-pointer font-bold" onClick={() => viewDetails(shipment)}>
                       {shipment.shipmentId}
                     </TableCell>
                     <TableCell
@@ -1015,11 +1008,6 @@ const ShipmentTable = ({
                     </TableCell>
                     <TableCell className="text-left">
                       {shipment.partnerDetails?.name}
-                    </TableCell>
-                    <TableCell className="text-left font-medium text-blue-400 cursor-pointer">
-                      <Button onClick={() => viewDetails(shipment)} size="sm">
-                        View{" "}
-                      </Button>
                     </TableCell>
                     <TableCell className="text-center space-x-2">
                       <Button

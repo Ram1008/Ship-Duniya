@@ -59,7 +59,6 @@ const orderFormSchema = z
   })
   .refine(
     (data) => {
-      // Only apply validation when order type is COD
       if (data.orderType === "cod") {
         return data.collectableValue <= data.declaredValue;
       }
@@ -68,7 +67,7 @@ const orderFormSchema = z
     {
       message:
         "Collectable value cannot be greater than declared value for COD orders",
-      path: ["collectableValue"], // This will show the error on the collectableValue field
+      path: ["collectableValue"], 
     }
   );
 

@@ -87,7 +87,7 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
       const breadth = parseFloat(editOrder.breadth) || 0;
       const height = parseFloat(editOrder.height) || 0;
       
-      const volumetricWeight = (length * breadth * height) / 5000;
+      const volumetricWeight = (length * breadth * height) / 5;
       
       setEditOrder(prev => ({
         ...prev,

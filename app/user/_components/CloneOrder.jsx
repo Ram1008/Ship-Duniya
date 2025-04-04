@@ -86,7 +86,7 @@ const CloneOrder = ({
       const breadth = parseFloat(cloneOrder.breadth) || 0;
       const height = parseFloat(cloneOrder.height) || 0;
       
-      const volumetricWeight = (length * breadth * height) / 5000;
+      const volumetricWeight = (length * breadth * height) / 5;
       
       setCloneOrder(prev => ({
         ...prev,
