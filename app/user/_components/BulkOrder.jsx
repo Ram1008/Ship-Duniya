@@ -60,10 +60,10 @@ export default function BulkUploadComponent({ isOpen, setIsOpen, onUpload }) {
     const worksheet = workbook.addWorksheet('Schema')
 
     const headings = [
-      'consignee', 'consigneeAddress1', 'consigneeAddress2 (optional)', 'orderType', 'pincode',
-      'mobile', 'invoiceNumber', 'telephone (optional)', 'city', 'state', 'length (cm)', 'breadth (cm)',
-      'height (cm)', 'collectableValue (optional)', 'declaredValue', 'itemDescription', 'dgShipment (optional)',
-      'quantity', 'volumetricWeight', 'actualWeight (grams)',
+      'consignee Name*', 'consigneeAddress1*', 'consigneeAddress2 (optional)', 'orderType*', 'pincode*',
+      'mobile*', 'invoiceNumber*', 'telephone (optional)', 'city*', 'state*', 'length* (cm)', 'breadth* (cm)',
+      'height* (cm)', 'collectableValue', 'declaredValue*', 'itemDescription*', 'dgShipment (optional)',
+      'quantity*', 'volumetricWeight', 'actualWeight* (grams)',
     ]
     const example1 = ['Dev', 'sector-10', '', 'prepaid', '201301', '1234567890', 'inv-321', '', 'noida', 'Uttar Pradesh', '2', '2', '2', '0', '200', 'this is glass bottle', '', '10', '8', '10']
     const example2 = ['Dev', 'sector-10', '', 'cod', '201301', '1234567890', 'inv-321', '', 'noida', 'Uttar Pradesh', '2', '2', '2', '200', '200', 'this is glass bottle', 'true', '10', '8', '10']
@@ -71,11 +71,11 @@ export default function BulkUploadComponent({ isOpen, setIsOpen, onUpload }) {
     worksheet.addRow(example1)
     worksheet.addRow(example2)
 
-    worksheet.getRow(1).eachCell((cell) => {
-      cell.font = { bold: true }
-      cell.alignment = { horizontal: 'center' }
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE599' } }
-    })
+    // worksheet.getRow(1).eachCell((cell) => {
+    //   cell.font = { bold: true }
+    //   cell.alignment = { horizontal: 'center' }
+    //   cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE599' } }
+    // })
 
     const buffer = await workbook.xlsx.writeBuffer()
     const blob = new Blob([buffer], {

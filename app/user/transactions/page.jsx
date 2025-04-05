@@ -106,7 +106,7 @@ export default function Transactions() {
   const filteredTransactions = transactions.filter((transaction) => {
     const matchesSearchQuery = searchQuery
       ? transaction.transactionId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.orderId?.toLowerCase().includes(searchQuery.toLowerCase())
+      transaction.orderId?.toLowerCase().includes(searchQuery.toLowerCase())
       : true;
 
     const matchesDateRange =
@@ -218,8 +218,7 @@ export default function Transactions() {
         { align: "center" }
       );
       doc.text(
-        `Tel. : ${invoice.sellerPhone || "9290551411, 9990531411"}   email : ${
-          invoice.sellerEmail || "shipduniya@gmail.com"
+        `Tel. : ${invoice.sellerPhone || "9290551411, 9990531411"}   email : ${invoice.sellerEmail || "shipduniya@gmail.com"
         }`,
         doc.internal.pageSize.width / 2,
         currentY + 40,
@@ -807,22 +806,28 @@ export default function Transactions() {
             <>
               {/* Wallet Transactions Tab */}
               <TabsContent value="wallet">
-                <Table>
+                <Table className="mt-4">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead> Transaction Type</TableHead>
-                      <TableHead>Amount</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead className="text-center">
-                        Current Balance
-                      </TableHead>
-                      <TableHead className="text-center">Action</TableHead>
+                      <TableHead>Transaction ID</TableHead>
+                      <TableHead>Transaction Type</TableHead>
+                      <TableHead>Ref No#</TableHead>
+                      <TableHead>Credit(₹)</TableHead>
+                      <TableHead>Debit(₹)</TableHead>
+                      <TableHead>Closing Balance</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-center">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {walletTransactions.map((transaction) => (
                       <TableRow key={transaction._id}>
+                        <TableCell className="hidden md:table-cell">
+                          <span className="col-span-3">
+                            {new Date(selectedTransaction.createdAt).toLocaleString("en-IN")}
+                          </span>
+                        </TableCell>
                         <TableCell className="font-medium">
                           {transaction.transactionId}
                         </TableCell>
@@ -832,26 +837,19 @@ export default function Transactions() {
                             : transaction.type.filter(type => type !== "wallet").join(" ")}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {transaction.currency || "$"}{" "}
-                          {transaction.amount.toFixed(2)}
+                          {transaction.awbNumber}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {format(
-                            new Date(transaction.updatedAt),
-                            "dd MMM yyyy"
-                          )}
+                          {transaction.creditAmount}
                         </TableCell>
-                        {/* <TableCell className="text-center">
-                          <Badge
-                            className={`${getStatusColor(
-                              transaction.status
-                            )} font-medium`}
-                          >
-                            {transaction.status}
-                          </Badge>
-                        </TableCell> */}
-                        <TableCell className="text-center">
+                        <TableCell className="hidden md:table-cell">
+                          {transaction.debitAmount}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
                           {transaction.balance}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell w-[20px]">
+                          {transaction.description}
                         </TableCell>
                         <TableCell className="text-center">
                           <Dialog>
@@ -915,8 +913,8 @@ export default function Transactions() {
                                         Confirmed:
                                       </span>
                                       <span className="col-span-3">
-                                      {new Date(selectedTransaction.confirmed_at)
-                                        .toLocaleString("en-IN")}
+                                        {new Date(selectedTransaction.confirmed_at)
+                                          .toLocaleString("en-IN")}
                                       </span>
                                     </div>
                                   )}
@@ -946,47 +944,49 @@ export default function Transactions() {
               </TabsContent>
 
               <TabsContent value="shipping">
-                <Table>
+                <Table className="mt-4">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Transaction ID</TableHead>
-                      <TableHead>Amount</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>AWB</TableHead>
-                      <TableHead className="text-center">
-                        Current Balance
-                      </TableHead>
-                      <TableHead className="text-center">Action</TableHead>
+                      <TableHead>Courier</TableHead>
+                      <TableHead>AWB Number</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Freight Charges</TableHead>
+                      <TableHead>COD Charges</TableHead>
+                      <TableHead>Entered Weight</TableHead>
+                      <TableHead>Entered Dimension</TableHead>
+                      <TableHead>Applied Wt (gram)</TableHead>
+                      <TableHead>Extra Wt Charges(₹)</TableHead>
+                      <TableHead>RTO Charges</TableHead>
+                      <TableHead>Freight Reverse</TableHead>
+                      <TableHead>COD Charge Reverse</TableHead>
+                      <TableHead>RTO Extra Wt Charges</TableHead>
+                      <TableHead>Total Charges</TableHead>
+                      <TableHead className="text-center">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {shippingTransactions.map((transaction) => (
                       <TableRow key={transaction._id}>
-                        <TableCell className="font-medium">
-                          {transaction.transactionId}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {transaction.currency || "$"}{" "}
-                          {transaction.amount.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                        {new Date(selectedTransaction?.updatedAt)
-                                        .toLocaleString("en-IN")}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {transaction.awbNumber || "N/A"}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {transaction.balance}
-                        </TableCell>
+                        <TableCell>{format(new Date(transaction.createdAt), "dd MMM yyyy")}</TableCell>
+                        <TableCell>{transaction.courier || "N/A"}</TableCell>
+                        <TableCell>{transaction.awbNumber || "N/A"}</TableCell>
+                        <TableCell>{transaction.status || "N/A"}</TableCell>
+                        <TableCell>{transaction.freightCharges || "0.00"}</TableCell>
+                        <TableCell>{transaction.codCharges || "0.00"}</TableCell>
+                        <TableCell>{transaction.enteredWeight || "0.00"}</TableCell>
+                        <TableCell>{transaction.enteredDimension || "N/A"}</TableCell>
+                        <TableCell>{transaction.appliedWeight || "0.00"}</TableCell>
+                        <TableCell>{transaction.extraWeightCharges || "0.00"}</TableCell>
+                        <TableCell>{transaction.rtoCharges || "0.00"}</TableCell>
+                        <TableCell>{transaction.freightReverse || "0.00"}</TableCell>
+                        <TableCell>{transaction.codChargeReverse || "0.00"}</TableCell>
+                        <TableCell>{transaction.rtoExtraWeightCharges || "0.00"}</TableCell>
+                        <TableCell>{transaction.totalCharges || "0.00"}</TableCell>
                         <TableCell className="text-center">
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewDetails(transaction)}
-                              >
+                              <Button variant="outline" size="sm" onClick={() => handleViewDetails(transaction)}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 <span className="hidden sm:inline">View</span>
                                 <span className="sm:hidden">Details</span>
@@ -995,70 +995,49 @@ export default function Transactions() {
                             <DialogContent className="sm:max-w-[425px]">
                               <DialogHeader>
                                 <DialogTitle>Transaction Details</DialogTitle>
-                                <DialogDescription>
-                                  Full details of the transaction
-                                </DialogDescription>
+                                <DialogDescription>Full details of the transaction</DialogDescription>
                               </DialogHeader>
                               {selectedTransaction && (
                                 <div className="grid gap-4 py-4">
                                   <div className="grid grid-cols-4 items-center gap-4">
                                     <span className="font-bold">Order ID:</span>
-                                    <span className="col-span-3">
-                                      {selectedTransaction.orderId}
-                                    </span>
+                                    <span className="col-span-3">{selectedTransaction.orderId}</span>
                                   </div>
                                   <div className="grid grid-cols-4 items-center gap-4">
                                     <span className="font-bold">Amount:</span>
                                     <span className="col-span-3">
-                                      {selectedTransaction.currency || "$"}{" "}
-                                      {selectedTransaction.amount.toFixed(2)}
+                                      {selectedTransaction.currency || "$"} {selectedTransaction.amount.toFixed(2)}
                                     </span>
                                   </div>
                                   <div className="grid grid-cols-4 items-center gap-4">
                                     <span className="font-bold">Status:</span>
                                     <span className="col-span-3">
-                                      <Badge
-                                        className={`${getStatusColor(
-                                          selectedTransaction.status
-                                        )} font-medium`}
-                                      >
+                                      <Badge className={`${getStatusColor(selectedTransaction.status)} font-medium`}>
                                         {selectedTransaction.status}
                                       </Badge>
                                     </span>
                                   </div>
                                   <div className="grid grid-cols-4 items-center gap-4">
-                                    <span className="font-bold">
-                                      Requested:
-                                    </span>
+                                    <span className="font-bold">Requested:</span>
                                     <span className="col-span-3">
-                                    {new Date(selectedTransaction.requested_at)
-                                        .toLocaleString("en-IN")}
+                                      {new Date(selectedTransaction.requested_at).toLocaleString("en-IN")}
                                     </span>
                                   </div>
                                   {selectedTransaction.confirmed_at && (
                                     <div className="grid grid-cols-4 items-center gap-4">
-                                      <span className="font-bold">
-                                        Confirmed:
-                                      </span>
+                                      <span className="font-bold">Confirmed:</span>
                                       <span className="col-span-3">
-                                      {new Date(selectedTransaction.confirmed_at)
-                                        .toLocaleString("en-IN")}
+                                        {new Date(selectedTransaction.confirmed_at).toLocaleString("en-IN")}
                                       </span>
                                     </div>
                                   )}
                                   <div className="grid grid-cols-4 items-center gap-4">
-                                    <span className="font-bold">
-                                      Payment ID:
-                                    </span>
-                                    <span className="col-span-3">
-                                      {selectedTransaction.paymentId}
-                                    </span>
+                                    <span className="font-bold">Payment ID:</span>
+                                    <span className="col-span-3">{selectedTransaction.paymentId}</span>
                                   </div>
                                   <div className="grid grid-cols-4 items-center gap-4">
                                     <span className="font-bold">User ID:</span>
-                                    <span className="col-span-3">
-                                      {selectedTransaction.userId}
-                                    </span>
+                                    <span className="col-span-3">{selectedTransaction.userId}</span>
                                   </div>
                                 </div>
                               )}
@@ -1142,15 +1121,14 @@ export default function Transactions() {
                               </div>
                             </div>
                             <div
-                              className={`badge mt-4 inline-flex items-center px-3 py-1 rounded-full ${
-                                invoiceDetails.status === "Paid"
-                                  ? "bg-green-200 text-green-800"
-                                  : invoiceDetails.status === "Pending"
+                              className={`badge mt-4 inline-flex items-center px-3 py-1 rounded-full ${invoiceDetails.status === "Paid"
+                                ? "bg-green-200 text-green-800"
+                                : invoiceDetails.status === "Pending"
                                   ? "bg-yellow-200 text-yellow-800"
                                   : invoiceDetails.status === "Overdue"
-                                  ? "bg-red-200 text-red-800"
-                                  : "bg-gray-200 text-gray-800"
-                              }`}
+                                    ? "bg-red-200 text-red-800"
+                                    : "bg-gray-200 text-gray-800"
+                                }`}
                             >
                               {getStatusIcon(invoiceDetails.status)}
                               {invoiceDetails.status}
