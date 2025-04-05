@@ -825,7 +825,7 @@ export default function Transactions() {
                       <TableRow key={transaction._id}>
                         <TableCell className="hidden md:table-cell">
                           <span className="col-span-3">
-                            {new Date(selectedTransaction.createdAt).toLocaleString("en-IN")}
+                            {/* {new Date(selectedTransaction.createdAt).toLocaleString("en-IN")} */}
                           </span>
                         </TableCell>
                         <TableCell className="font-medium">
@@ -1050,145 +1050,218 @@ export default function Transactions() {
                 </Table>
               </TabsContent>
 
+              <TabsContent value="weight">
+                <Table className="mt-4">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>AWB Number</TableHead>
+                      <TableHead>Order Id</TableHead>
+                      <TableHead>Entered Weight</TableHead>
+                      <TableHead>Applied Weight</TableHead>
+                      <TableHead>Weight Charges</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-center">Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {shippingTransactions.map((transaction) => (
+                      <TableRow key={transaction._id}>
+                        <TableCell>{format(new Date(transaction.createdAt), "dd MMM yyyy")}</TableCell>
+                        <TableCell>{transaction.awbNumber || "N/A"}</TableCell>
+                        <TableCell>{transaction.orderId || "N/A"}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <p>{transaction.weight || '0'}</p>
+                            <p>{transaction.length || '0'}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" onClick={() => handleViewDetails(transaction)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                <span className="hidden sm:inline">View</span>
+                                <span className="sm:hidden">Details</span>
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                              <DialogHeader>
+                                <DialogTitle>Transaction Details</DialogTitle>
+                                <DialogDescription>Full details of the transaction</DialogDescription>
+                              </DialogHeader>
+                              {selectedTransaction && (
+                                <div className="grid gap-4 py-4">
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <span className="font-bold">Order ID:</span>
+                                    <span className="col-span-3">{selectedTransaction.orderId}</span>
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <span className="font-bold">Amount:</span>
+                                    <span className="col-span-3">
+                                      {selectedTransaction.currency || "$"} {selectedTransaction.amount.toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <span className="font-bold">Status:</span>
+                                    <span className="col-span-3">
+                                      <Badge className={`${getStatusColor(selectedTransaction.status)} font-medium`}>
+                                        {selectedTransaction.status}
+                                      </Badge>
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <span className="font-bold">Requested:</span>
+                                    <span className="col-span-3">
+                                      {new Date(selectedTransaction.requested_at).toLocaleString("en-IN")}
+                                    </span>
+                                  </div>
+                                  {selectedTransaction.confirmed_at && (
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                      <span className="font-bold">Confirmed:</span>
+                                      <span className="col-span-3">
+                                        {new Date(selectedTransaction.confirmed_at).toLocaleString("en-IN")}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <span className="font-bold">Payment ID:</span>
+                                    <span className="col-span-3">{selectedTransaction.paymentId}</span>
+                                  </div>
+                                  <div className="grid grid-cols-4 items-center gap-4">
+                                    <span className="font-bold">User ID:</span>
+                                    <span className="col-span-3">{selectedTransaction.userId}</span>
+                                  </div>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+
               {/* Monthly Invoices Tab */}
               <TabsContent value="invoice">
                 <div className="container mx-auto py-10">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h1 className="text-3xl font-bold tracking-tight">
-                        Monthly Invoices
-                      </h1>
-                    </div>
-                    <div className="flex justify-between items-center gap-4">
-                      <input
-                        type="text"
-                        placeholder="Search invoices..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="input max-w-sm border-2 border-gray-400 rounded-lg px-3 py-1"
-                      />
-                      <select
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                        className="select w-[180px] border-2 border-gray-400 rounded-lg px-2"
+
+                  <div className="flex flex-wrap gap-4 px-3">
+                    {filteredInvoices.map((invoice) => (
+                      <div
+                        key={invoice.id}
+                        className="card cursor-pointer hover:shadow-md transition-shadow bg-gray-100 rounded-xl px-4 py-3"
+                        onClick={() => setSelectedInvoice(invoice.id)}
                       >
-                        <option value="all">All Time</option>
-                        <option value="2023">2023</option>
-                        <option value="2022">2022</option>
-                        <option value="2021">2021</option>
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {filteredInvoices.map((invoice) => (
-                        <div
-                          key={invoice.id}
-                          className="card cursor-pointer hover:shadow-md transition-shadow bg-gray-100 rounded-xl px-4 py-3"
-                          onClick={() => setSelectedInvoice(invoice.id)}
-                        >
-                          <div className="card-body">
-                            <h3 className="font-semibold mb-2">
-                              The invoice for {invoice.month} {invoice.year} is
-                              available to download
-                            </h3>
-                            <p className="text-xl font-bold mb-2">
-                              ₹&nbsp;{invoice.amount.toFixed(2)}
-                            </p>
-                            <p className="text-xs font-semibold text-gray-500 mb-2">
-                              Invoice ID: {invoice.id}
-                            </p>
-                            <div className="flex justify-between">
-                              <Button>Download</Button>
+                        <div className="card-body">
+                          <h3 className="font-semibold mb-2">
+                            The invoice for {invoice.month} {invoice.year} is
+                            available
+                          </h3>
+                          <p className="text-xl font-bold mb-2">
+                            ₹&nbsp;{invoice.amount.toFixed(2)}
+                          </p>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">
+                            Invoice ID: {invoice.id}
+                          </p>
+                          <div className="flex justify-between mt-4">
+                            <div >
+                              <Button variant='export'>Download Excel</Button>
+                            </div>
+                            <div>
+                              <Button  variant='export'>Download PDF</Button>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                    {invoiceDetails && (
-                      <Dialog
-                        open={!!invoiceDetails}
-                        onOpenChange={() => setInvoiceDetails(null)}
-                      >
-                        <DialogContent className="max-w-xl p-0 overflow-hidden rounded-2xl shadow-xl">
-                          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <DialogTitle className="text-2xl font-bold text-white">
-                                  {`Invoice ${invoiceDetails.id}`}
-                                </DialogTitle>
-                                <DialogDescription className="text-blue-100 mt-1">
-                                  {`${invoiceDetails.month} ${invoiceDetails.year}`}
-                                </DialogDescription>
-                              </div>
-                            </div>
-                            <div
-                              className={`badge mt-4 inline-flex items-center px-3 py-1 rounded-full ${invoiceDetails.status === "Paid"
-                                ? "bg-green-200 text-green-800"
-                                : invoiceDetails.status === "Pending"
-                                  ? "bg-yellow-200 text-yellow-800"
-                                  : invoiceDetails.status === "Overdue"
-                                    ? "bg-red-200 text-red-800"
-                                    : "bg-gray-200 text-gray-800"
-                                }`}
-                            >
-                              {getStatusIcon(invoiceDetails.status)}
-                              {invoiceDetails.status}
-                            </div>
-                          </div>
-                          <div className="p-6">
-                            <div className="space-y-6">
-                              <div>
-                                <p className="text-sm font-medium text-gray-500">
-                                  Due Date
-                                </p>
-                                <p className="mt-1 text-gray-900">
-                                  {invoiceDetails.dueDate}
-                                </p>
-                              </div>
-                              <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                  Invoice Items
-                                </h3>
-                                <div className="space-y-3">
-                                  {invoiceDetails.items.map((item, index) => (
-                                    <div
-                                      key={index}
-                                      className="flex justify-between items-center py-3 border-b border-gray-100"
-                                    >
-                                      <p className="font-medium text-gray-900">
-                                        {item.description}
-                                      </p>
-                                      <p className="text-gray-900">
-                                        ₹{item.amount.toFixed(2)}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="bg-gray-50 -mx-6 px-6 py-4">
-                                <div className="flex justify-between items-center">
-                                  <p className="text-lg font-semibold text-gray-900">
-                                    Total Amount
-                                  </p>
-                                  <p className="text-xl font-bold text-blue-600">
-                                    ₹{invoiceDetails.amount.toFixed(2)}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="px-6 pb-6">
-                            <Button
-                              onClick={handleDownloadInvoice}
-                              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center font-medium"
-                            >
-                              <Download className="h-5 w-5 mr-2" />
-                              Download Invoice
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    )}
+                      </div>
+                    ))}
                   </div>
+                  {invoiceDetails && (
+                    <Dialog
+                      open={!!invoiceDetails}
+                      onOpenChange={() => setInvoiceDetails(null)}
+                    >
+                      <DialogContent className="max-w-xl p-0 overflow-hidden rounded-2xl shadow-xl">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <DialogTitle className="text-2xl font-bold text-white">
+                                {`Invoice ${invoiceDetails.id}`}
+                              </DialogTitle>
+                              <DialogDescription className="text-blue-100 mt-1">
+                                {`${invoiceDetails.month} ${invoiceDetails.year}`}
+                              </DialogDescription>
+                            </div>
+                          </div>
+                          <div
+                            className={`badge mt-4 inline-flex items-center px-3 py-1 rounded-full ${invoiceDetails.status === "Paid"
+                              ? "bg-green-200 text-green-800"
+                              : invoiceDetails.status === "Pending"
+                                ? "bg-yellow-200 text-yellow-800"
+                                : invoiceDetails.status === "Overdue"
+                                  ? "bg-red-200 text-red-800"
+                                  : "bg-gray-200 text-gray-800"
+                              }`}
+                          >
+                            {getStatusIcon(invoiceDetails.status)}
+                            {invoiceDetails.status}
+                          </div>
+                        </div>
+                        <div className="p-6">
+                          <div className="space-y-6">
+                            <div>
+                              <p className="text-sm font-medium text-gray-500">
+                                Due Date
+                              </p>
+                              <p className="mt-1 text-gray-900">
+                                {invoiceDetails.dueDate}
+                              </p>
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                Invoice Items
+                              </h3>
+                              <div className="space-y-3">
+                                {invoiceDetails.items.map((item, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex justify-between items-center py-3 border-b border-gray-100"
+                                  >
+                                    <p className="font-medium text-gray-900">
+                                      {item.description}
+                                    </p>
+                                    <p className="text-gray-900">
+                                      ₹{item.amount.toFixed(2)}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="bg-gray-50 -mx-6 px-6 py-4">
+                              <div className="flex justify-between items-center">
+                                <p className="text-lg font-semibold text-gray-900">
+                                  Total Amount
+                                </p>
+                                <p className="text-xl font-bold text-blue-600">
+                                  ₹{invoiceDetails.amount.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="px-6 pb-6">
+                          <Button
+                            onClick={handleDownloadInvoice}
+                            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center font-medium"
+                          >
+                            <Download className="h-5 w-5 mr-2" />
+                            Download Invoice
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
               </TabsContent>
             </>
