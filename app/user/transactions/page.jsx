@@ -627,32 +627,69 @@ export default function Transactions() {
   };
 
   const handleDownloadExcel = async (invoice) => {
+    console.log(invoice)
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Transactions");
       const headings = [
         "Transaction ID",
-        "Type",
-        "Amount",
         "Date",
-        "Current Balance",
-        "Order ID",
+        "Type",
+        "Company",
+        "Debited",
+        "Credited",
+        "Carrier",
         "AWB Number",
-        "Status"
+        "ShipmentId",
+        "Order ID",
+        "Payment Type",
+        "Pincode",
+        "City",
+        "Zone",
+        "Origin City",
+        "Origin State",
+        "Destination City",
+        "Destination State",
+        "Pickup Pincode",
+        "Charged Weight",
+        "Freight Charge",
+        "COD Charge",
+        "GST",
+        "SGST",
+        "CGST",
+        "Total"
       ];
       worksheet.addRow(headings);
       filteredTransactions.forEach((transaction) => {
         worksheet.addRow([
           transaction.transactionId,
+          new Date(transaction.updatedAt).toLocaleDateString(),
           transaction.type.length === 1 && transaction.type[0] === "wallet"
             ? "wallet"
             : transaction.type.filter(type => type !== "wallet").join(" "),
-          `${transaction.currency || "$"} ${transaction.amount.toFixed(2)}`,
-          new Date(transaction.updatedAt).toLocaleDateString(),
-          transaction.balance,
-          transaction.orderId || "N/A",
-          transaction.awbNumber || "N/A",
-          transaction.status
+            "Ship Duniya",
+            `${transaction.debitAmount}`,
+            `${transaction.creditAmount}`,
+            `${transaction.courier}`,
+            transaction.awbNumber || "N/A",
+            transaction.shipmentId || "N/A",
+            transaction.orderId || "N/A",
+            transaction.paymentType,
+            transaction.pincode,
+            transaction.city,
+            transaction.zone,
+            transaction.originCity,
+            transaction.originState,
+            transaction.destinationCity,
+            transaction.destinationState,
+            transaction.pickupPincode,
+            transaction.chargedWeight,
+            transaction.freightCharge,
+            transaction.codCharge,
+            transaction.gst,
+            transaction.sgst,
+            transaction.cgst,
+            transaction.totalAmount
         ]);
       });
       const buffer = await workbook.xlsx.writeBuffer();
