@@ -626,7 +626,7 @@ export default function Transactions() {
     setSelectedTransaction(transaction);
   };
 
-  const handleDownloadExcel = async () => {
+  const handleDownloadExcel = async (invoice) => {
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Transactions");
@@ -666,7 +666,8 @@ export default function Transactions() {
     }
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = (invoice) => {
+    console.log(invoice);
     try {
       const doc = new jsPDF();
       const tableColumn = [
@@ -1072,10 +1073,20 @@ export default function Transactions() {
                         <TableCell>{transaction.orderId || "N/A"}</TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <p>{transaction.weight || '0'}</p>
-                            <p>{transaction.length || '0'}</p>
+                            <p><strong>Dead Weight:</strong> {transaction.weight || '0'}</p>
+                            <p><strong>LxBxH:</strong> {transaction.length }x{transaction.weight }x{transaction.height }</p>
+                            <p><strong>Charged Slab:</strong> {transaction.slab }</p>
+                            <p><strong>Volumetric Weight:</strong> {transaction.volumetricWeight }</p>
                           </div>
                         </TableCell>
+                        <TableCell><strong>Applied Slab:</strong> {transaction.appliedWeight}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <p><strong>Forward:</strong> {transaction.forward || '0'}</p>
+                            <p><strong>Charged to wallet:</strong> {transaction.chargedToWallet || '0'}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{transaction.productDescription}</TableCell>
                         <TableCell className="text-center">
                           <Dialog>
                             <DialogTrigger asChild>
@@ -1152,7 +1163,6 @@ export default function Transactions() {
                       <div
                         key={invoice.id}
                         className="card cursor-pointer hover:shadow-md transition-shadow bg-gray-100 rounded-xl px-4 py-3"
-                        onClick={() => setSelectedInvoice(invoice.id)}
                       >
                         <div className="card-body">
                           <h3 className="font-semibold mb-2">
@@ -1167,101 +1177,16 @@ export default function Transactions() {
                           </p>
                           <div className="flex justify-between mt-4">
                             <div >
-                              <Button variant='export'>Download Excel</Button>
+                              <Button variant='export' onClick={() => handleDownloadExcel(invoice)}>Download Excel</Button>
                             </div>
                             <div>
-                              <Button  variant='export'>Download PDF</Button>
+                              <Button  variant='export' onClick={() => handleDownloadPDF(invoice)}>Download PDF</Button>
                             </div>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  {invoiceDetails && (
-                    <Dialog
-                      open={!!invoiceDetails}
-                      onOpenChange={() => setInvoiceDetails(null)}
-                    >
-                      <DialogContent className="max-w-xl p-0 overflow-hidden rounded-2xl shadow-xl">
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <DialogTitle className="text-2xl font-bold text-white">
-                                {`Invoice ${invoiceDetails.id}`}
-                              </DialogTitle>
-                              <DialogDescription className="text-blue-100 mt-1">
-                                {`${invoiceDetails.month} ${invoiceDetails.year}`}
-                              </DialogDescription>
-                            </div>
-                          </div>
-                          <div
-                            className={`badge mt-4 inline-flex items-center px-3 py-1 rounded-full ${invoiceDetails.status === "Paid"
-                              ? "bg-green-200 text-green-800"
-                              : invoiceDetails.status === "Pending"
-                                ? "bg-yellow-200 text-yellow-800"
-                                : invoiceDetails.status === "Overdue"
-                                  ? "bg-red-200 text-red-800"
-                                  : "bg-gray-200 text-gray-800"
-                              }`}
-                          >
-                            {getStatusIcon(invoiceDetails.status)}
-                            {invoiceDetails.status}
-                          </div>
-                        </div>
-                        <div className="p-6">
-                          <div className="space-y-6">
-                            <div>
-                              <p className="text-sm font-medium text-gray-500">
-                                Due Date
-                              </p>
-                              <p className="mt-1 text-gray-900">
-                                {invoiceDetails.dueDate}
-                              </p>
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                Invoice Items
-                              </h3>
-                              <div className="space-y-3">
-                                {invoiceDetails.items.map((item, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex justify-between items-center py-3 border-b border-gray-100"
-                                  >
-                                    <p className="font-medium text-gray-900">
-                                      {item.description}
-                                    </p>
-                                    <p className="text-gray-900">
-                                      ₹{item.amount.toFixed(2)}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="bg-gray-50 -mx-6 px-6 py-4">
-                              <div className="flex justify-between items-center">
-                                <p className="text-lg font-semibold text-gray-900">
-                                  Total Amount
-                                </p>
-                                <p className="text-xl font-bold text-blue-600">
-                                  ₹{invoiceDetails.amount.toFixed(2)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="px-6 pb-6">
-                          <Button
-                            onClick={handleDownloadInvoice}
-                            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center font-medium"
-                          >
-                            <Download className="h-5 w-5 mr-2" />
-                            Download Invoice
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
                 </div>
               </TabsContent>
             </>
