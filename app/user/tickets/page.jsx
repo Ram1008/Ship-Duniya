@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { getIssueTypeLabel } from "@/utils/helpers";
 
@@ -43,6 +44,7 @@ const Tickets = () => {
   const [newReply, setNewReply] = useState("");
   const [awbResponse, setAwbResponse] = useState(null);
   const [file, setFile] = useState(null);
+  const [tracking, setTracking] = useState();
 
   const fetchTickets = async () => {
     setTicketLoading(true);
@@ -177,6 +179,24 @@ const Tickets = () => {
       </div>
     </div>
   );
+
+  const fetchTracking = async (awb) => {
+    try {
+      const response = await axiosInstance.get(
+        `/track/${awb}`
+      );
+      setTracking(response.data);
+    } catch (error) {
+      console.error("Error fetching shipments:", error);
+    }
+  };
+
+  const handleTracking = async (awb) => {
+    if(selectedTicket){
+      setSelectedTicket(null);
+    }
+    await fetchTracking(awb);
+  }
 
   return (
     <div className="space-y-4">
@@ -375,7 +395,7 @@ const Tickets = () => {
                   {getIssueTypeLabel(selectedTicket.issueType)}
                 </DialogTitle>
                 <DialogDescription>{selectedTicket.subject}</DialogDescription>
-                {selectedTicket.awbNumber? <DialogDescription>AWB Number: {selectedTicket.awbNumber}</DialogDescription> : null}
+                {selectedTicket.awbNumber? <DialogDescription>AWB Number: <span className="text-primary cursor-pointer" onClick={() => handleTracking(selectedTicket.awbNumber)}>{selectedTicket.awbNumber}</span></DialogDescription> : null}
                 <DialogDescription>
                   {selectedTicket.description}
                 </DialogDescription>
@@ -470,6 +490,53 @@ const Tickets = () => {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!tracking}
+        onOpenChange={() => setTracking(null)}>
+          <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-bold text-xl">
+              Tracking Details
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-gray-600">Courier Partner: {tracking?.courier}</p>
+            {tracking?.trackingDetails.ShipmentData[0].Shipment.Scans.map(
+              (scan, index) => (
+                  <div className="flex gap-2 items-center">
+                    {scan.ScanDetail.Scan === "In Transit" ? (
+                      <Truck className="text-blue-500" />
+                    ) : scan.ScanDetail.Scan === "Dispatched" ? (
+                      <PhoneCall className="text-green-500" />
+                    ) : scan.ScanDetail.Scan === "Pending" ? (
+                      <Clock className="text-yellow-500" />
+                    ) : (
+                      <MapPin className="text-gray-500" />
+                    )}
+                    <div>
+                      <p className="font-semibold">
+                        {scan.ScanDetail.Scan} - {scan.ScanDetail.Instructions}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(
+                          scan.ScanDetail.ScanDateTime
+                        ).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Location: {scan.ScanDetail.ScannedLocation}
+                      </p>
+                    </div>
+                  </div>
+              )
+            )}
+          <DialogFooter className="flex justify-around">
+            <Button
+              onClick={() => setIsParcelDetailsOpen(false)}
+              className="w-full bg-red-600 text-white mt-2"
+            >
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

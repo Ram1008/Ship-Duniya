@@ -44,8 +44,11 @@ const OrdersPage = () => {
   });
   const [viewShipped, setViewShipped] = useState(false);
   const [viewNotShipped, setViewNotShipped] = useState(false);
-  const [createForwardSingleOrder, setCreateForwardSingleOrder] = useState(false);
-  const [createReverseSingleOrder, setCreateReverseSingleOrder] = useState(false);
+  const [viewCancelled, setViewCancelled] = useState(false);
+  const [createForwardSingleOrder, setCreateForwardSingleOrder] =
+    useState(false);
+  const [createReverseSingleOrder, setCreateReverseSingleOrder] =
+    useState(false);
   const [createForwardBulkOrder, setCreateForwardBulkOrder] = useState(false);
   const [createReverseBulkOrder, setCreateReverseBulkOrder] = useState(false);
   const { toast } = useToast();
@@ -53,7 +56,7 @@ const OrdersPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const router = useRouter();
-  
+
   // Use the OrdersContext
   const {
     loading,
@@ -70,12 +73,12 @@ const OrdersPage = () => {
     filteredOrders,
     fetchOrders,
     handleForwardBulkOrder,
-    handleReverseBulkOrder
+    handleReverseBulkOrder,
   } = useOrders();
 
   // Get user type from localStorage
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser);
@@ -88,59 +91,71 @@ const OrdersPage = () => {
 
   // Calculate paginated orders
   const paginatedOrders = useMemo(() => {
-    // Apply additional filters for shipped/not shipped orders
+    // Start with the full list of filtered orders from the OrdersContext
     let filteredOrdersWithStatus = [...filteredOrders];
-    
-    // Filter by shipped status if needed
-    if (viewShipped) {
-      filteredOrdersWithStatus = filteredOrdersWithStatus.filter(order => order.shipped);
+
+    // Apply status filters
+    if (viewCancelled) {
+      // When viewing cancelled, show orders that are cancelled
+      filteredOrdersWithStatus = filteredOrdersWithStatus.filter(
+        (order) => order.isCancelled
+      );
+    } else if (viewShipped) {
+      // When viewing shipped, show orders that are booked (shipped)
+      filteredOrdersWithStatus = filteredOrdersWithStatus.filter(
+        (order) => order.shipped
+      );
     } else if (viewNotShipped) {
-      filteredOrdersWithStatus = filteredOrdersWithStatus.filter(order => !order.shipped && !order.isCancelled);
+      // When viewing not shipped, show orders that are not shipped and not cancelled
+      filteredOrdersWithStatus = filteredOrdersWithStatus.filter(
+        (order) => !order.shipped && !order.isCancelled
+      );
     }
-    
-    // Filter by date range
+
+    // Apply date range filter
     if (dateRange.from && dateRange.to) {
       const fromDate = new Date(dateRange.from);
       fromDate.setHours(0, 0, 0, 0);
-      
+
       const toDate = new Date(dateRange.to);
       toDate.setHours(23, 59, 59, 999);
-      
-      filteredOrdersWithStatus = filteredOrdersWithStatus.filter(order => {
+
+      filteredOrdersWithStatus = filteredOrdersWithStatus.filter((order) => {
         const orderDate = new Date(order.createdAt);
         return orderDate >= fromDate && orderDate <= toDate;
       });
     }
-    
-    // Sort the filtered orders according to the requirements
+
+    // Sort the filtered orders
+    // For example, for not shipped orders we sort by weight, and for the rest we sort by date
     const sortedOrders = [...filteredOrdersWithStatus].sort((a, b) => {
-      // First, sort by status: not shipped first, then booked, then cancelled
-      if (!a.shipped && b.shipped) return -1;
-      if (a.shipped && !b.shipped) return 1;
-      if (a.isCancelled && !b.isCancelled) return 1;
-      if (!a.isCancelled && b.isCancelled) return 1;
-      
-      // For not shipped orders, sort by weight in increasing order
-      if (!a.shipped && !b.shipped) {
-        // Calculate volumetric weight using the formula: length * breadth * height / 5
-        const volWeightA = (a.length || 0) * (a.breadth || 0) * (a.height || 0) / 5;
-        const volWeightB = (b.length || 0) * (b.breadth || 0) * (b.height || 0) / 5;
-        
-        // Use the maximum of actual weight or calculated volumetric weight
+      if (!viewCancelled && !a.shipped && !b.shipped) {
+        // Only for not shipped orders: sort by weight (calculate volumetric weight first)
+        const volWeightA =
+          ((a.length || 0) * (a.breadth || 0) * (a.height || 0)) / 5;
+        const volWeightB =
+          ((b.length || 0) * (b.breadth || 0) * (b.height || 0)) / 5;
         const weightA = Math.max(a.actualWeight || 0, volWeightA);
         const weightB = Math.max(b.actualWeight || 0, volWeightB);
-        
         return weightA - weightB;
       }
-      
-      // Default sort by date (newest first)
+      // Default: sort by date descending
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
-    
+
+    // Apply pagination
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return sortedOrders.slice(startIndex, endIndex);
-  }, [filteredOrders, currentPage, pageSize, viewShipped, viewNotShipped, dateRange]);
+  }, [
+    filteredOrders,
+    currentPage,
+    pageSize,
+    viewShipped,
+    viewNotShipped,
+    viewCancelled,
+    dateRange,
+  ]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -198,8 +213,7 @@ const OrdersPage = () => {
       });
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
-        type:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       saveAs(blob, "orders.xlsx");
     } catch (error) {
@@ -264,13 +278,14 @@ const OrdersPage = () => {
           >
             <span className="text-lg">+ Export </span>
           </Button>
-          <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+          <Dialog
+            open={isExportDialogOpen}
+            onOpenChange={setIsExportDialogOpen}
+          >
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Export</DialogTitle>
-                <DialogDescription>
-                  Download Excel or PDF.
-                </DialogDescription>
+                <DialogDescription>Download Excel or PDF.</DialogDescription>
               </DialogHeader>
               <DialogFooter className="flex justify-around">
                 <Button
@@ -322,26 +337,34 @@ const OrdersPage = () => {
                   </Select>
                 </div>
                 <button
-                  className={`text-sm font-semibold px-4 py-2 rounded-lg ${
-                    viewShipped ? "bg-primary shadow-lg" : "bg-primary"
-                  } text-primary-foreground`}
+                  className={`text-sm font-semibold px-4 py-2 rounded-lg border border-green-500 text-green-500`}
                   onClick={() => {
                     setViewShipped(!viewShipped);
                     setViewNotShipped(false);
+                    setViewCancelled(false);
                   }}
                 >
-                  View Shipped
+                  View Booked
                 </button>
                 <button
-                  className={`text-sm font-semibold px-4 py-2 rounded-lg ${
-                    viewNotShipped ? "bg-primary shadow-lg" : "bg-primary"
-                  } text-primary-foreground`}
+                  className={`text-sm font-semibold px-4 py-2 rounded-lg border border-primary text-primary`}
                   onClick={() => {
                     setViewNotShipped(!viewNotShipped);
                     setViewShipped(false);
+                    setViewCancelled(false);
                   }}
                 >
                   View Not Shipped
+                </button>
+                <button
+                  className={`text-sm font-semibold px-4 py-2 rounded-lg border border-destructive text-destructive`}
+                  onClick={() => {
+                    setViewCancelled(!viewCancelled);
+                    setViewShipped(false);
+                    setViewNotShipped(false);
+                  }}
+                >
+                  View Cancelled
                 </button>
               </div>
               <div className="flex items-center gap-4">
@@ -388,9 +411,7 @@ const OrdersPage = () => {
 
   const renderView = () => {
     if (createForwardSingleOrder) {
-      return (
-        <OrderForm/>
-      );
+      return <OrderForm />;
     }
     if (createReverseSingleOrder) {
       return (

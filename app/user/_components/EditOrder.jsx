@@ -105,8 +105,8 @@ const EditOrder = ({ isEditing, setIsEditing, editOrder, setEditOrder }) => {
 
     try {
       const response = await axiosInstance.put(`/orders/${editOrder._id}`, editOrder);
-      console.log(response);
       setIsEditing(false);
+      window.location.reload();
     } catch (err) {
       console.log(err);
     }

@@ -41,7 +41,7 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const response = await axiosInstance.post("/users/send-phone-otp", { phone });
+      const response = await axiosInstance.post("/users/phone-otp", { phone });
       if (response.status === 200) {
         setIsMobileOtpSent(true);
         setOtpSent(true);

@@ -39,13 +39,12 @@ const orderFormSchema = z
     telephone: z.string().optional(),
     mobile: z
       .string()
-      .regex(/^\d{10}$/, "Must be 10 digits")
-      .or(z.literal("")),
+      .regex(/^\d{10}$/, "Must be 10 digits"),
     collectableValue: z
       .number()
       .min(0, "Must be a valid number and at least 0"),
     declaredValue: z.number().min(0, "Must be a valid number and at least 0"),
-    itemDescription: z.string(),
+    itemDescription: z.string().min(1, "Item Description is required"),
     dgShipment: z.boolean(),
     quantity: z
       .number()

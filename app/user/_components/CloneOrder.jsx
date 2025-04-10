@@ -109,6 +109,8 @@ const CloneOrder = ({
       );
       if (response.data.success) {
         setIsCloneDialogOpen(false);
+
+        window.location.reload();
       }
     } catch (e) {
       console.log(e);

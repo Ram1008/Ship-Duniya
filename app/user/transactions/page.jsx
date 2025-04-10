@@ -146,156 +146,81 @@ export default function Transactions() {
     }
   };
 
-  const handleDownloadInvoice = () => {
-    // Get invoice data from your API
-    const invoice = monthlyInvoices.find((inv) => inv.id === selectedInvoice);
-    if (!invoice) {
-      alert("Please select a valid invoice to download.");
-      return;
-    }
-
-    // Create new PDF document
+  const handleDownloadInvoice = (invoice) => {
     const doc = new jsPDF();
-
-    // Set initial margins and position
+  
     const leftMargin = 15;
     const topMargin = 15;
     let currentY = topMargin;
-
-    // Load and add logo image
-    const logoUrl = "../../../public/shipDuniyaIcon.jpg";
+  
+    const logoUrl = "/shipDuniyaIcon.jpg"; // Assuming logo is in public folder
     const img = new Image();
     img.src = logoUrl;
-
+  
     img.onload = function () {
-      // Add logo to the PDF
       doc.addImage(img, "JPEG", leftMargin, currentY, 30, 30);
-
-      // Continue with the rest of the PDF generation
       continueWithPdfGeneration();
     };
-
+  
     img.onerror = function () {
       console.error("Error loading logo image");
-      // Continue with PDF generation without the logo
       doc.rect(leftMargin, currentY, 30, 30);
       continueWithPdfGeneration();
     };
-
+  
     function continueWithPdfGeneration() {
-      // Add company name and title
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text("TAX INVOICE", doc.internal.pageSize.width / 2, currentY + 10, {
-        align: "center",
-      });
-
+      doc.text("TAX INVOICE", doc.internal.pageSize.width / 2, currentY + 10, { align: "center" });
+  
       doc.setFontSize(20);
-      doc.text("SHIP DUNIYA", doc.internal.pageSize.width / 2, currentY + 20, {
-        align: "center",
-      });
-
-      // Add "Original Copy" text
+      doc.text("SHIP DUNIYA", doc.internal.pageSize.width / 2, currentY + 20, { align: "center" });
+  
       doc.setFontSize(10);
       doc.setFont("helvetica", "italic");
-      doc.text("Original Copy", doc.internal.pageSize.width - 20, currentY + 10, {
-        align: "right",
-      });
-
-      // Company address and details
-      doc.setFontSize(10);
+      doc.text("Original Copy", doc.internal.pageSize.width - 20, currentY + 10, { align: "right" });
+  
       doc.setFont("helvetica", "normal");
-      doc.text(
-        "C-45, GROUND FLOOR, SECTORE 10, NOIDA",
-        doc.internal.pageSize.width / 2,
-        currentY + 30,
-        { align: "center" }
-      );
-      doc.text(
-        `GSTIN : ${invoice.sellerGstin || "09AFLFS8825D1ZK"}`,
-        doc.internal.pageSize.width / 2,
-        currentY + 35,
-        { align: "center" }
-      );
-      doc.text(
-        `Tel. : ${invoice.sellerPhone || "9290551411, 9990531411"}   email : ${invoice.sellerEmail || "shipduniya@gmail.com"
-        }`,
-        doc.internal.pageSize.width / 2,
-        currentY + 40,
-        { align: "center" }
-      );
-
+      doc.text("C-45, GROUND FLOOR, SECTORE 10, NOIDA", doc.internal.pageSize.width / 2, currentY + 30, { align: "center" });
+      doc.text(`GSTIN : ${invoice.sellerGstin || "09AFLFS8825D1ZK"}`, doc.internal.pageSize.width / 2, currentY + 35, { align: "center" });
+      doc.text(`Tel. : ${invoice.sellerPhone || "9290551411, 9990531411"}   email : ${invoice.sellerEmail || "shipduniya@gmail.com"}`, doc.internal.pageSize.width / 2, currentY + 40, { align: "center" });
+  
       currentY += 45;
-
-      // Supply details box
+  
       doc.rect(doc.internal.pageSize.width - 80, currentY, 80, 20);
-      doc.text(
-        "Place of Supply   :   Uttar Pradesh (09)",
-        doc.internal.pageSize.width - 75,
-        currentY + 8
-      );
-      doc.text(
-        "Reverse Charge    :   N",
-        doc.internal.pageSize.width - 75,
-        currentY + 15
-      );
-
+      doc.text("Place of Supply   :   Uttar Pradesh (09)", doc.internal.pageSize.width - 75, currentY + 8);
+      doc.text("Reverse Charge    :   N", doc.internal.pageSize.width - 75, currentY + 15);
+  
       currentY += 25;
-
-      // Billing and shipping information
+  
       const billingStartX = leftMargin;
       const shippingStartX = doc.internal.pageSize.width / 2;
-
-      // Draw boxes
-      doc.rect(
-        billingStartX,
-        currentY,
-        doc.internal.pageSize.width / 2 - leftMargin,
-        40
-      );
-      doc.rect(
-        shippingStartX,
-        currentY,
-        doc.internal.pageSize.width / 2 - leftMargin,
-        40
-      );
-
-      // Box headers
+  
+      doc.rect(billingStartX, currentY, doc.internal.pageSize.width / 2 - leftMargin, 40);
+      doc.rect(shippingStartX, currentY, doc.internal.pageSize.width / 2 - leftMargin, 40);
+  
       doc.setFont("helvetica", "bold");
       doc.text("Billed to : (SELLER DETAILS)", billingStartX + 5, currentY + 8);
       doc.text("Shipped to: (SELLER DETAILS)", shippingStartX + 5, currentY + 8);
-
-      // Box content
+  
       const address = [
         invoice.buyerName || "FOREVER ENGINEERING SYSTEM PVT LTD",
         invoice.buyerAddress1 || "B 817, 8TH FLOOR",
         invoice.buyerAddress2 || "ADVANT NAVIS BUSINESS PARK, SECTOR 142",
         invoice.buyerCity || "NOIDA, Uttar Pradesh, 201301",
       ];
-
-      // Add billing address
+  
+      doc.setFont("helvetica", "normal");
       doc.text(address, billingStartX + 5, currentY + 15);
-
-      // Add shipping address (same in this case)
       doc.text(address, shippingStartX + 5, currentY + 15);
-
+  
       currentY += 45;
-
-      // GSTIN Information
-      doc.text(
-        `GSTIN / UIN       :   ${invoice.buyerGstin || "09AACCF6683P1ZT"}`,
-        billingStartX + 5,
-        currentY
-      );
-      doc.text(
-        `GSTIN / UIN       :   ${invoice.buyerGstin || "09AACCF6683P1ZT"}`,
-        shippingStartX + 5,
-        currentY
-      );
-
+  
+      doc.text(`GSTIN / UIN       :   ${invoice.buyerGstin || "09AACCF6683P1ZT"}`, billingStartX + 5, currentY);
+      doc.text(`GSTIN / UIN       :   ${invoice.buyerGstin || "09AACCF6683P1ZT"}`, shippingStartX + 5, currentY);
+  
       currentY += 10;
-
-      // Line items table
+  
       const tableColumns = [
         { header: "S.No.", dataKey: "sno" },
         { header: "Description of Goods", dataKey: "description" },
@@ -306,23 +231,30 @@ export default function Transactions() {
         { header: "Discount", dataKey: "discount" },
         { header: "Amount(₹)", dataKey: "amount" },
       ];
-
-      // Create table rows from invoice transactions
+  
       let tableRows = [];
-
       if (invoice.transactions && invoice.transactions.length > 0) {
-        tableRows = invoice.transactions.map((tx, index) => ({
-          sno: index + 1,
-          description: tx.description || "SHIPPING CHARGE",
-          hsn: tx.hsn || "996812",
-          qty: tx.quantity || "--",
-          unit: tx.unit || "--",
-          price: tx.price || "0.00 %",
-          discount: "--",
-          amount: tx.amount.toFixed(2),
-        }));
+        let totalAmount = 0;
+        let totalQty = 0;
+  
+        invoice.transactions.forEach((tx) => {
+          totalAmount += parseFloat(tx.amount);
+          totalQty += tx.quantity ? parseFloat(tx.quantity) : 0;
+        });
+  
+        tableRows = [
+          {
+            sno: 1,
+            description: "All Transactions",
+            hsn: invoice.transactions[0].hsn || "996812",
+            qty: totalQty,
+            unit: invoice.transactions[0].unit || "--",
+            price: "Varies",
+            discount: "--",
+            amount: totalAmount.toFixed(2),
+          },
+        ];
       } else {
-        // Fallback to sample data if no transactions
         tableRows = [
           {
             sno: 1,
@@ -336,177 +268,83 @@ export default function Transactions() {
           },
         ];
       }
-
-      // Calculate totals
-      const subtotal = tableRows.reduce(
-        (sum, row) => sum + parseFloat(row.amount),
-        0
-      );
+  
+      const subtotal = tableRows.reduce((sum, row) => sum + parseFloat(row.amount), 0);
       const taxRate = invoice.taxRate || 9;
       const cgst = (subtotal * taxRate) / 100;
       const sgst = (subtotal * taxRate) / 100;
+      const igst = 0;
       const roundOff = invoice.roundOff || 0.0;
       const grandTotal = subtotal + cgst + sgst + roundOff;
-
-      // Add table
+  
       doc.autoTable({
         head: [tableColumns.map((col) => col.header)],
         body: tableRows.map((row) => tableColumns.map((col) => row[col.dataKey])),
         startY: currentY,
         theme: "grid",
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-        },
-        headStyles: {
-          fillColor: [255, 255, 255],
-          textColor: [0, 0, 0],
-          fontStyle: "bold",
-          lineWidth: 0.1,
-        },
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold" },
         columnStyles: {
           0: { cellWidth: 10 },
           1: { cellWidth: 60 },
         },
       });
-
-      // Get the Y position after the table
+  
       currentY = doc.previousAutoTable.finalY + 10;
-
-      // Add tax summary
       const taxStartX = doc.internal.pageSize.width - 120;
-
+  
       doc.text("Add : CGST", taxStartX, currentY);
-      doc.text(`₹`, taxStartX + 70, currentY, { align: "right" });
-      doc.text(`${taxRate.toFixed(1)} %`, taxStartX + 80, currentY, {
-        align: "right",
-      });
-      doc.text(`${cgst.toFixed(2)}`, taxStartX + 100, currentY, {
-        align: "right",
-      });
-
+      doc.text("₹", taxStartX + 70, currentY, { align: "right" });
+      doc.text(`${taxRate.toFixed(1)} %`, taxStartX + 80, currentY, { align: "right" });
+      doc.text(`${cgst.toFixed(2)}`, taxStartX + 100, currentY, { align: "right" });
+  
       currentY += 5;
       doc.text("Add : SGST", taxStartX, currentY);
-      doc.text(`₹`, taxStartX + 70, currentY, { align: "right" });
-      doc.text(`${taxRate.toFixed(1)} %`, taxStartX + 80, currentY, {
-        align: "right",
-      });
-      doc.text(`${sgst.toFixed(2)}`, taxStartX + 100, currentY, {
-        align: "right",
-      });
+      doc.text("₹", taxStartX + 70, currentY, { align: "right" });
+      doc.text(`${taxRate.toFixed(1)} %`, taxStartX + 80, currentY, { align: "right" });
+      doc.text(`${sgst.toFixed(2)}`, taxStartX + 100, currentY, { align: "right" });
 
       currentY += 5;
+      doc.text("Add : IGST", taxStartX, currentY);
+      doc.text("₹", taxStartX + 70, currentY, { align: "right" });
+      doc.text(`${2*taxRate.toFixed(1)} %`, taxStartX + 80, currentY, { align: "right" });
+      doc.text(`${igst?.toFixed(2)}`, taxStartX + 100, currentY, { align: "right" });
+  
+      currentY += 5;
       doc.text("Add : Rounded Off (+)", taxStartX, currentY);
-      doc.text(`${roundOff.toFixed(2)}`, taxStartX + 100, currentY, {
-        align: "right",
-      });
-
+      doc.text(`${roundOff.toFixed(2)}`, taxStartX + 100, currentY, { align: "right" });
+  
       currentY += 8;
-      doc.setLineWidth(0.1);
-      doc.line(
-        taxStartX - 5,
-        currentY - 3,
-        doc.internal.pageSize.width - leftMargin,
-        currentY - 3
-      );
-
+      doc.line(taxStartX - 5, currentY - 3, doc.internal.pageSize.width - leftMargin, currentY - 3);
+  
       doc.setFont("helvetica", "bold");
       doc.text("Grand Total", taxStartX, currentY);
-      doc.text(`${grandTotal.toFixed(2)}`, taxStartX + 100, currentY, {
-        align: "right",
-      });
-
-      // Create tax rate table
+      doc.text(`${grandTotal.toFixed(2)}`, taxStartX + 100, currentY, { align: "right" });
+  
       currentY += 15;
+  
       doc.autoTable({
-        head: [
-          ["Tax Rate", "Taxable Amt.", "CGST Amt.", "SGST Amt.", "Total Tax"],
-        ],
-        body: [
-          [
-            `${(taxRate * 2).toFixed(0)}%`,
-            subtotal.toFixed(2),
-            cgst.toFixed(2),
-            sgst.toFixed(2),
-            (cgst + sgst).toFixed(2),
-          ],
-        ],
+        head: [["Tax Rate", "Taxable Amt.", "CGST Amt.", "SGST Amt.", "IGST Amt.", "Total Tax"]],
+        body: [[
+          `${(taxRate * 2).toFixed(0)}%`,
+          subtotal.toFixed(2),
+          cgst.toFixed(2),
+          sgst.toFixed(2),
+          igst.toFixed(2),
+          (cgst + sgst).toFixed(2),
+        ]],
         startY: currentY,
         theme: "grid",
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-        },
-        headStyles: {
-          fillColor: [255, 255, 255],
-          textColor: [0, 0, 0],
-          fontStyle: "bold",
-          lineWidth: 0.1,
-        },
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold" },
       });
-
-      currentY = doc.previousAutoTable.finalY + 10;
-
-      // Amount in words
-      doc.setFont("helvetica", "bold");
-      const amountInWords = numberToWords(Math.round(grandTotal));
-      doc.text(`Rupees ${amountInWords} Only`, leftMargin, currentY);
-
-      currentY += 10;
-
-      // Terms and conditions and signature box
-      const termsStartX = leftMargin;
-      const termsWidth = doc.internal.pageSize.width / 2 - 20;
-      const signatureStartX = doc.internal.pageSize.width / 2;
-      const signatureWidth = doc.internal.pageSize.width / 2 - leftMargin;
-      const boxHeight = 50;
-
-      doc.rect(termsStartX, currentY, termsWidth, boxHeight);
-      doc.rect(signatureStartX, currentY, signatureWidth, boxHeight);
-
-      doc.setFont("helvetica", "bold");
-      doc.text("Terms & Conditions", termsStartX + 5, currentY + 8);
-      doc.text("Receiver's Signature    :", signatureStartX + 5, currentY + 8);
-
-      doc.setFont("helvetica", "normal");
-      doc.text("E & O.E", termsStartX + 5, currentY + 15);
-      doc.text(
-        "1. Goods once sold will not be taken back.",
-        termsStartX + 5,
-        currentY + 22
-      );
-      doc.text(
-        "2. Interest @ 18% p.a will be charged if the payment",
-        termsStartX + 5,
-        currentY + 29
-      );
-      doc.text(
-        "is not made with in the stipulated time.",
-        termsStartX + 5,
-        currentY + 36
-      );
-      doc.text(
-        "3. Subject to 'Uttar Pradesh' Jurisdiction only.",
-        termsStartX + 5,
-        currentY + 43
-      );
-
-      doc.text(
-        "for SHIP DUNIYA",
-        signatureStartX + signatureWidth - 30,
-        currentY + 40
-      );
-      doc.setFont("helvetica", "bold");
-      doc.text(
-        "Authorized Signatory",
-        signatureStartX + signatureWidth - 30,
-        currentY + 47
-      );
-
+  
       // Save PDF
-      doc.save(`Invoice_${invoice.id || "Ship_Duniya"}.pdf`);
+      doc.save(`invoice-${invoice.invoiceNumber || "download"}.pdf`);
     }
   };
+  
+  
 
   // Helper function to convert number to words
   function numberToWords(num) {
@@ -627,6 +465,102 @@ export default function Transactions() {
   };
 
   const handleDownloadExcel = async (invoice) => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Transactions");
+      const headings = [
+        "Transaction ID",
+        "Type",
+        "Amount",
+        "Date",
+        "Current Balance",
+        "Order ID",
+        "AWB Number",
+        "Status"
+      ];
+      worksheet.addRow(headings);
+      filteredTransactions.forEach((transaction) => {
+        worksheet.addRow([
+          transaction.transactionId,
+          transaction.type.length === 1 && transaction.type[0] === "wallet"
+            ? "wallet"
+            : transaction.type.filter(type => type !== "wallet").join(" "),
+          `${transaction.currency || "$"} ${transaction.amount.toFixed(2)}`,
+          new Date(transaction.updatedAt).toLocaleDateString(),
+          transaction.balance,
+          transaction.orderId || "N/A",
+          transaction.awbNumber || "N/A",
+          transaction.status
+        ]);
+      });
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, "transactions.xlsx");
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast.error("Failed to export Excel");
+    }
+  };
+
+  const handleDownloadPDF = (invoice) => {
+    try {
+      const doc = new jsPDF();
+      const tableColumn = [
+        "Transaction ID",
+        "Type",
+        "Amount",
+        "Date",
+        "Current Balance",
+        "Order ID",
+        "AWB Number",
+        "Status"
+      ];
+      const tableRows = filteredTransactions.map((transaction) => [
+        transaction.transactionId,
+        transaction.type.length === 1 && transaction.type[0] === "wallet"
+          ? "wallet"
+          : transaction.type.filter(type => type !== "wallet").join(" "),
+        `${transaction.currency || "$"} ${transaction.amount.toFixed(2)}`,
+        new Date(transaction.updatedAt).toLocaleDateString(),
+        transaction.balance,
+        transaction.orderId || "N/A",
+        transaction.awbNumber || "N/A",
+        transaction.status
+      ]);
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: 255,
+          fontStyle: 'bold',
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 20 },
+          3: { cellWidth: 20 },
+          4: { cellWidth: 25 },
+          5: { cellWidth: 30 },
+          6: { cellWidth: 25 },
+          7: { cellWidth: 20 },
+        },
+      });
+      doc.save("transactions.pdf");
+    } catch (error) {
+      console.error("Error exporting to PDF:", error);
+      toast.error("Failed to export PDF");
+    }
+  };
+
+  const downloadExcelInvoice = async (invoice) => {
     console.log(invoice)
     try {
       const workbook = new ExcelJS.Workbook();
@@ -690,6 +624,7 @@ export default function Transactions() {
             transaction.sgst,
             transaction.cgst,
             transaction.totalAmount
+          
         ]);
       });
       const buffer = await workbook.xlsx.writeBuffer();
@@ -700,63 +635,6 @@ export default function Transactions() {
     } catch (error) {
       console.error("Error exporting to Excel:", error);
       toast.error("Failed to export Excel");
-    }
-  };
-
-  const handleDownloadPDF = (invoice) => {
-    console.log(invoice);
-    try {
-      const doc = new jsPDF();
-      const tableColumn = [
-        "Transaction ID",
-        "Type",
-        "Amount",
-        "Date",
-        "Current Balance",
-        "Order ID",
-        "AWB Number",
-        "Status"
-      ];
-      const tableRows = filteredTransactions.map((transaction) => [
-        transaction.transactionId,
-        transaction.type.length === 1 && transaction.type[0] === "wallet"
-          ? "wallet"
-          : transaction.type.filter(type => type !== "wallet").join(" "),
-        `${transaction.currency || "$"} ${transaction.amount.toFixed(2)}`,
-        new Date(transaction.updatedAt).toLocaleDateString(),
-        transaction.balance,
-        transaction.orderId || "N/A",
-        transaction.awbNumber || "N/A",
-        transaction.status
-      ]);
-      doc.autoTable({
-        head: [tableColumn],
-        body: tableRows,
-        startY: 20,
-        headStyles: {
-          fillColor: [41, 128, 185],
-          textColor: 255,
-          fontStyle: 'bold',
-        },
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-        },
-        columnStyles: {
-          0: { cellWidth: 30 },
-          1: { cellWidth: 25 },
-          2: { cellWidth: 20 },
-          3: { cellWidth: 20 },
-          4: { cellWidth: 25 },
-          5: { cellWidth: 30 },
-          6: { cellWidth: 25 },
-          7: { cellWidth: 20 },
-        },
-      });
-      doc.save("transactions.pdf");
-    } catch (error) {
-      console.error("Error exporting to PDF:", error);
-      toast.error("Failed to export PDF");
     }
   };
 
@@ -1214,10 +1092,10 @@ export default function Transactions() {
                           </p>
                           <div className="flex justify-between mt-4">
                             <div >
-                              <Button variant='export' onClick={() => handleDownloadExcel(invoice)}>Download Excel</Button>
+                              <Button variant='export' onClick={() => downloadExcelInvoice(invoice)}>Download Excel</Button>
                             </div>
                             <div>
-                              <Button  variant='export' onClick={() => handleDownloadPDF(invoice)}>Download PDF</Button>
+                              <Button  variant='export' onClick={() => handleDownloadInvoice(invoice)}>Download PDF</Button>
                             </div>
                           </div>
                         </div>

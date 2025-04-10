@@ -798,6 +798,15 @@ const ShipmentTable = ({
       alert("An error occurred while generating labels.");
     }
   };
+
+  const cancelShipment = async (id) =>{
+    try{
+      const res = axiosInstance.post('/shipping/cancel-shipping', {shippingId:id})
+      window.location.reload();
+    }catch(error){
+      console.log(error)
+    }
+  }
   
 
   return (
@@ -973,6 +982,7 @@ const ShipmentTable = ({
                   <TableHead className="text-left">Pincode</TableHead>
                   <TableHead className="text-left">Courier Name</TableHead>
                   <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1020,6 +1030,14 @@ const ShipmentTable = ({
                           ? "Pickup Pending"
                           : shipment.status || "Pending"}
                         <span className="absolute inset-0 bg-gradient-to-tr from-indigo-600 via-blue-400 to-cyan-400 opacity-50 transition-all duration-300 transform scale-110"></span>
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-center space-x-2">
+                      <Button
+                        className=" border border-red-500 text-red-500"
+                        onClick={() => cancelShipment(shipment._id)}
+                      >
+                        Cancel
                       </Button>
                     </TableCell>
                   </TableRow>

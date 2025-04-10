@@ -25,7 +25,7 @@ export default function WalletWithRazorpay() {
   const router = useRouter();
   const [orderId, setOrderId] = useState('');
   const [scriptLoaded, setScriptLoaded] = useState(false);
-  const [amount, setAmount] = useState(1000);
+  const [amount, setAmount] = useState('');
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +49,11 @@ export default function WalletWithRazorpay() {
   const handlePayment = async () => {
     try {
       const response = await axiosInstance.post('/payment/create', { amount });
+
+      if(amount < 500){
+        alert('Minimum amount to add is ₹500');
+        return;
+      }
   
       if (response.status === 200) {
         const { id, amount: responseAmount, currency } = response.data;
@@ -170,11 +175,10 @@ export default function WalletWithRazorpay() {
             <Input
               id="amount"
               type="number"
-              min="1"
-              step="1000"
               value={amount}
               onChange={handleAmountChange}
               className="w-full"
+              placeholder="Enter amount > 500"
             />
           </div>
           <DialogFooter>
@@ -183,7 +187,7 @@ export default function WalletWithRazorpay() {
               onClick={handlePayment}
               className="w-full text-lg py-6"
             >
-              Add ₹{amount.toFixed(2)}
+              Add ₹{amount}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -323,7 +323,7 @@ export const chargeSheet = [
           },
         },
         {
-          carrierName: "Delhivery Surface 250",
+          carrierName: "Delhivery Surface 250gm",
           ccodCharges: 66,
           codPercentage: "2.36%",
           fwd: {
@@ -410,7 +410,7 @@ export const chargeSheet = [
           },
         },
         {
-          carrierName: "Delhivery Reverse 250",
+          carrierName: "Delhivery Reverse 250gm",
           ccodCharges: 66,
           codPercentage: "2.36%",
           fwd: {

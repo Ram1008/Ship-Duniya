@@ -33,22 +33,22 @@ const RemetanceTable = ({
       <TableHeader>
         <TableRow>
           <TableHead className="hidden md:table-cell text-left">
-            Shipment ID
+            Remittance ID
           </TableHead>
-          <TableHead className="text-left">AWB Number</TableHead>
-          <TableHead className="text-left">Date</TableHead>
-          <TableHead className="text-left">Consignee</TableHead>
+          <TableHead className="text-left">COD Amount</TableHead>
+          <TableHead className="text-left">Status</TableHead>
+          <TableHead className="text-left">Payment Date</TableHead>
           <TableHead className="text-left">Pincode</TableHead>
-          <TableHead className="text-left">Courier Name</TableHead>
-          <TableHead className="text-left">Order ID</TableHead>
-          <TableHead className="text-left">Remittance</TableHead>
+          <TableHead className="text-left">Remittance amount</TableHead>
+          <TableHead className="text-left">Transaction Id</TableHead>
+          <TableHead className="text-left">Download</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {filteredShippings.map((shipment) => (
           <TableRow key={shipment._id}>
             <TableCell className="text-left font-bold">
-              {shipment.SHIPMENT_ID}
+              {shipment.remittanceId}
             </TableCell>
             <TableCell
               className="text-left text-blue-400 cursor-pointer"

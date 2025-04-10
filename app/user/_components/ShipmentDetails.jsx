@@ -109,67 +109,83 @@ const ShipmentDetails = ({ details, isTracking = false, handleBackToList }) => {
                 <dd>{details[0].orderId}</dd>
               </div> */}
               <div>
-                <dt>Consignee Name</dt>
+                <dt><strong>Consignee Name</strong></dt>
                 <dd>{details[0].orderIds[0].consignee}</dd>
               </div>
               <div>
-                <dt>Address</dt>
+                <dt><strong>Address</strong></dt>
                 <dd>{details[0].orderIds[0].consigneeAddress1 || "N/A"}</dd>
               </div>
               <div>
-                <dt>Pincode</dt>
+                <dt><strong>Pincode</strong></dt>
                 <dd>{details[0].orderIds[0].pincode || "N/A"}</dd>
               </div>
               <div>
-                <dt>Phone</dt>
+                <dt><strong>Phone</strong></dt>
                 <dd>{details[0].orderIds[0].mobile || "N/A"}</dd>
               </div>
               <div>
-                <dt>Order Type</dt>
+                <dt><strong>Order Type</strong></dt>
                 <dd>{details[0].orderIds[0].orderType || "N/A"}</dd>
               </div>
               <div>
-                <dt>AWB Number</dt>
-                <dd>{details[0].awbNumber || "N/A"}</dd>
-              </div>
-              <div>
-                <dt>Warehouse Address</dt>
+                <dt><strong>Warehouse Address</strong></dt>
                 <dd>{details[0].pickupAddress.addressLine1 || "N/A"}</dd>
               </div>
               <div>
-                <dt>Warehouse Pincode</dt>
+                <dt><strong>Warehouse Pincode</strong></dt>
                 <dd>{details[0].pickupAddress.pincode|| "N/A"}</dd>
               </div>
               <div>
-                <dt>Invoice Number</dt>
+                <dt><strong>Invoice Number</strong></dt>
                 <dd>{details[0].orderIds[0].invoiceNumber || "N/A"}</dd>
               </div>
               <div>
-                <dt>Courier Partner Name</dt>
+                <dt><strong>Courier Partner Name</strong></dt>
                 <dd>{details[0].partnerDetails.name || "N/A"}</dd>
               </div>
               <div>
-                <dt>Item Description</dt>
-                <dd>{details[0].orderIds[0].itemDescription|| "N/A"}</dd>
-              </div>
-              <div>
-                <dt>Quantity</dt>
+                <dt><strong>Quantity</strong></dt>
                 <dd>{details[0].orderIds[0].quantity || "N/A"}</dd>
               </div>
               <div>
-                <dt>Per product price</dt>
-                <dd>{details[0].orderIds[0].declaredValue / details[0].orderIds[0].quantity || "N/A"}</dd>
-              </div>
-              <div>
-                <dt>Total price</dt>
-                <dd>{details[0].orderIds[0].declaredValue || "N/A"}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
+                <dt><strong>Status</strong></dt>
                 <dd>{details[0].status}</dd>
               </div>
               <div>
-                <dt>Dangerous Goods Shipment</dt>
+                <dt><strong>Label</strong></dt>
+                <dd>
+                  {details[0].label ? (
+                    <Link
+                      href={details[0].label}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      View Label
+                    </Link>
+                  ) : (
+                    <span>No Label Available</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt><strong>Manifest</strong></dt>
+                <dd>
+                  {details[0].manifest? (<Link
+                    href={details[0].manifest}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    View Manifest
+                  </Link>) :(
+                    <span>No Manifest Available</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt><strong>Dangerous Goods Shipment</strong></dt>
                 <dd>{details[0].dgShipment ? "Yes" : "No"}</dd>
               </div>
             </dl>
