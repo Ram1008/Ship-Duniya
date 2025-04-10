@@ -41,11 +41,9 @@ export default function BulkUploadComponent({ isOpen, setIsOpen, onUpload }) {
     }
   
     try {
-      // Create FormData and append the file
-      
-      await onUpload(file);
-      
-      setSuccess("File uploaded successfully")
+      const response = await onUpload(file);
+      console.log(response.details[0])
+      setSuccess(response.details[0])
       setFile(null)
       setIsOpen(false)
     } catch (err) {
