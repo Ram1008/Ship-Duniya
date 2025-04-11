@@ -13,11 +13,14 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle, Download, Upload } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ExcelJS from "exceljs";
+import { useToast } from "@/hooks/use-toast";
+import { set } from "date-fns";
 
 export default function BulkUploadComponent({ isOpen, setIsOpen, onUpload }) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const { toast } = useToast();
 
   // Handle file selection
   const handleFileChange = (event) => {
@@ -43,29 +46,18 @@ export default function BulkUploadComponent({ isOpen, setIsOpen, onUpload }) {
     try {
       const response = await onUpload(file);
       // Build the success message with error detail if available
-      const successMessage = response.data?.details && response.data.details.length > 0
-        ? `Booked Successfully: ${response.data.details[0]}`
-        : "Booked Successfully";
-      setSuccess(successMessage);
-      setError(null);
-      setFile(null);
-      setIsOpen(false);
+      if(response) {
+        const successMessage = response.message
+        setSuccess(successMessage);
+        setError(null);
+        setFile(null);
+        setIsOpen(false);
+      }
     } catch (err) {
-      console.error(err);
-      // Extract error detail if it exists
-      const errorDetail =
-        err.response?.data?.details && err.response.data.details.length > 0
-          ? err.response.data.details[0]
-          : null;
-      // Build the error message with both main error and detail if possible
-      const errorMessage =
-        err.response?.data?.error && errorDetail
-          ? `${err.response.data.error}: ${errorDetail}`
-          : "An error occurred while uploading the file";
-      setError(errorMessage);
-      setSuccess(null);
+      console.log(err);
+      // setError(err);
     }
-  }, [file, onUpload, setIsOpen]);
+  }, [file, onUpload, setIsOpen, toast]);
 
   // Handle schema download using ExcelJS
   const handleDownloadSchema = async () => {

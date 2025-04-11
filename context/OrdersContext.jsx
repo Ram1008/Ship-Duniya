@@ -160,16 +160,16 @@ export const OrdersProvider = ({ children }) => {
       if (response.data.success) {
         toast({
           title: "Bulk upload successful",
-          description: `${response.data.count} orders have been created`,
+          description: `${response.data.message}`,
           variant: "success",
         });
         fetchOrders();
       }
     } catch (error) {
-      console.error("Bulk upload failed:", error);
+      console.log(error)
       toast({
         title: "Bulk upload failed",
-        description: error.response?.data?.message || "Please check your file and try again",
+        description: error.response?.data?.details.join(", ") ,
         variant: "destructive",
       });
     } finally {
