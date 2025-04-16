@@ -54,7 +54,7 @@ const OrdersPage = () => {
   const { toast } = useToast();
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 50;
   const router = useRouter();
 
   // Use the OrdersContext
@@ -196,6 +196,7 @@ const OrdersPage = () => {
         "Phone",
         "Weight",
         "Quantity",
+        "Status",
       ];
       worksheet.addRow(headings);
       filteredOrders.forEach((order) => {
@@ -209,6 +210,7 @@ const OrdersPage = () => {
           order.mobile || order.MOBILE,
           Math.max(order.actualWeight || 0, order.volumetricWeight || 0),
           order.quantity,
+          order.isCancelled ? "Cancelled" : order.shipped ? "Shipped" : "Not Shipped",
         ]);
       });
       const buffer = await workbook.xlsx.writeBuffer();
@@ -235,6 +237,7 @@ const OrdersPage = () => {
         "Phone",
         "Weight",
         "Quantity",
+        "Status",
       ];
       const tableRows = filteredOrders.map((order) => [
         order.orderId,
@@ -246,6 +249,7 @@ const OrdersPage = () => {
         order.mobile || order.MOBILE,
         Math.max(order.actualWeight || 0, order.volumetricWeight || 0),
         order.quantity,
+        order.isCancelled ? "Cancelled" : order.shipped ? "Shipped" : "Not Shipped",
       ]);
       doc.autoTable({
         head: [tableColumn],

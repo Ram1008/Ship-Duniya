@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,10 @@ export default function SignUpForm() {
   const [isMobileOtpSent, setIsMobileOtpSent] = useState(false);
   const [emailOtpVerified, setEmailOtpVerified] = useState(false);
   const [mobileOtpVerified, setMobileOtpVerified] = useState(false);
+
+  // Add new state variables to track verified values
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+  const [verifiedPhone, setVerifiedPhone] = useState("");
 
   const {
     register,
@@ -90,6 +94,7 @@ export default function SignUpForm() {
       });
       if (response.status === 200) {
         setEmailOtpVerified(true);
+        setVerifiedEmail(watch("email").trim()); // Store the verified email
       } else {
         alert("Incorrect OTP. Please try again.");
       }
@@ -120,8 +125,9 @@ export default function SignUpForm() {
         phone: phone,
         otp: mobileOTP,
       });
-      if (response.status === 200 ) {
+      if (response.status === 200) {
         setMobileOtpVerified(true);
+        setVerifiedPhone(phone); // Store the verified phone number
       } else {
         alert("Incorrect OTP. Please try again.");
       }
@@ -130,6 +136,25 @@ export default function SignUpForm() {
       alert("Failed to verify mobile OTP.");
     }
   };
+
+  // Add watchers for email and mobile changes
+  useEffect(() => {
+    const currentEmail = watch("email")?.trim();
+    if (currentEmail && currentEmail !== verifiedEmail) {
+      setIsEmailOtpSent(false);
+      setEmailOtpVerified(false);
+      setEmailOTP("");
+    }
+  }, [watch("email")]);
+
+  useEffect(() => {
+    const currentPhone = watch("mobile");
+    if (currentPhone && currentPhone !== verifiedPhone) {
+      setIsMobileOtpSent(false);
+      setMobileOtpVerified(false);
+      setMobileOTP("");
+    }
+  }, [watch("mobile")]);
 
   return (
     <div className="loginBackground min-h-screen w-full flex items-center justify-center p-4 relative">
@@ -192,10 +217,10 @@ export default function SignUpForm() {
                 />
                 <Button
                   onClick={handleSendEmailOTP}
-                  disabled={!watch("email") || isEmailOtpSent}
+                  disabled={!watch("email") || (isEmailOtpSent && watch("email").trim() === verifiedEmail)}
                   type="button"
                 >
-                  {isEmailOtpSent ? "OTP Sent" : "Send OTP"}
+                  {isEmailOtpSent && watch("email").trim() === verifiedEmail ? "OTP Sent" : "Send OTP"}
                 </Button>
               </div>
               {errors.email && (
@@ -237,9 +262,9 @@ export default function SignUpForm() {
               <div className="flex gap-2 mt-2">
                 <Button
                   onClick={handleSendMobileOTP}
-                  disabled={!watch("mobile") || isMobileOtpSent}
+                  disabled={!watch("mobile") || (isMobileOtpSent && watch("mobile") === verifiedPhone)}
                 >
-                  {isMobileOtpSent ? "OTP Sent" : "Send OTP"}
+                  {isMobileOtpSent && watch("mobile") === verifiedPhone ? "OTP Sent" : "Send OTP"}
                 </Button>
               </div>
               {isMobileOtpSent && !mobileOtpVerified && (
