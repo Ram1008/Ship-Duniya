@@ -15,7 +15,7 @@ const ShipmentsPage = () => {
   const [viewTracking, setViewTracking] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [userData, setUserData] = useState(null);
-  const pageSize = 10;
+  const pageSize = 50;
 
   const fetchShipments = useCallback(async () => {
     setLoading(true);

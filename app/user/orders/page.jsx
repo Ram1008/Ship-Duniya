@@ -74,6 +74,7 @@ const OrdersPage = () => {
     fetchOrders,
     handleForwardBulkOrder,
     handleReverseBulkOrder,
+    handleBookShipment
   } = useOrders();
 
   // Get user type from localStorage
@@ -437,6 +438,7 @@ const OrdersPage = () => {
           selectedOrder={selectedOrder}
           setSelectedOrder={setSelectedOrder}
           userType={userType}
+          handleBookShipment={handleBookShipment}
         />
       );
     }

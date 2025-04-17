@@ -186,11 +186,11 @@ const OrdersTable = ({
           {orders.map((order, idx) => (
             <TableRow key={idx} className="item-center">
               <TableCell className="text-left">
-                <input
+                {order.isCancelled || order.shipped ? null : <input
                   type="checkbox"
                   checked={selectedOrderIds.includes(order._id)}
                   onChange={() => toggleSelectOrder(order._id)}
-                />
+                />}
               </TableCell>
               <TableCell className="text-left font-medium">
                 <span

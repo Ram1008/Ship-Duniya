@@ -1008,13 +1008,13 @@ const ShipmentTable = ({
                       {new Date(shipment.createdAt).toISOString().split("T")[0]}
                     </TableCell>
                     <TableCell className="text-left font-medium">
-                      {shipment.orderIds[0].orderType}
+                      {shipment.orderIds?.[0]?.orderType}
                     </TableCell>
                     <TableCell className="text-left font-medium">
                       {shipment.consignee}
                     </TableCell>
                     <TableCell className="text-left">
-                      {shipment.orderIds[0].pincode}
+                      {shipment.orderIds?.[0]?.pincode}
                     </TableCell>
                     <TableCell className="text-left">
                       {shipment.partnerDetails?.name}
