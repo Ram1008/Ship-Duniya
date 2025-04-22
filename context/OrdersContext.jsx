@@ -93,7 +93,7 @@ export const OrdersProvider = ({ children }) => {
   }, [toast]);
 
   // Book shipment
-  const handleBookShipment = useCallback(async (selectedPartner, shippingInfo) => {
+  const handleBookShipment = useCallback(async (selectedPartner, shippingInfo, selectedOrders) => {
     if (!selectedPartner) return;
     
     setShippingLoading(true);

@@ -7,13 +7,16 @@ import { OrdersProvider } from "@/context/OrdersContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "ShipBazzar",
-  description: "ShipBazzar - Your Shipping Partner",
+  title: "ShipDuniya",
+  description: "ShipDuniya - Your Shipping Partner",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <link  rel="icon" href="/shipDuniyaIcon.jpg" />
+      </head>
       <body className={inter.className}>
         <AuthProvider>
           <OrdersProvider>

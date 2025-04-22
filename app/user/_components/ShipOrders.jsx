@@ -84,7 +84,7 @@ const ShipOrders = ({
   }, [shippingInfo]);
 
   const bookShipment = async () => {
-    handleBookShipment(selectedPartner, shippingInfo);
+    handleBookShipment(selectedPartner, shippingInfo, selectedOrder);
   };
 
   const goBack = () => {
