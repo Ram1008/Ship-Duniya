@@ -76,7 +76,7 @@ export default function LoginForm() {
               className="text-2xl font-bold cursor-pointer"
               onClick={() => router.push("/")}
             >
-              Ship Duniya
+              Ship <span className="text-red-700">D</span>uniya
             </CardTitle>
           </div>
           <p className="text-center text-sm text-muted-foreground">

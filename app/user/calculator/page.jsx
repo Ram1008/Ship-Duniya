@@ -31,6 +31,8 @@ import { chargeSheet } from "./constants";
 
 import axiosInstance from "@/utils/axios";
 import { Loader2 } from "lucide-react";
+import Partner from "./Partner";
+import ExpressRateCards from "./ExpressRateCards";
 
 export default function RateCalculator() {
   const [originPincode, setOriginPincode] = useState("");
@@ -343,7 +345,10 @@ export default function RateCalculator() {
                   </div>
                 ))}
               </CardContent>
+              <Partner/>
+               <ExpressRateCards/>
             </Card>
+          
           ))}
         </div>
       </div>

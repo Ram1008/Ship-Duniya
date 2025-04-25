@@ -510,254 +510,228 @@ const ShipmentTable = ({
   
   const handleLabeling = async () => {
     try {
-      // Check if selectedShipments and shipments are populated
-      console.log("Selected shipments:", selectedShipments);
-      console.log("Shipments data:", shipments);
-  
       const selectedAwbNumbers = selectedShipments
-        .map((id) => shipments.find((s) => s._id === id)?.awbNumber)
-        .filter((awb) => awb !== undefined);
+        .map(id => shipments.find(s => s._id === id)?.awbNumber)
+        .filter(Boolean);
   
-      console.log("Selected AWB Numbers:", selectedAwbNumbers);
+      if (selectedAwbNumbers.length === 0) {
+        alert("No shipments selected.");
+        return;
+      }
   
-      const response = await axiosInstance.post("/label", {
-        awbNumbers: selectedAwbNumbers,
-      });
-      console.log("Label response:", response.data);
-  
-      if (!response.data.labels || response.data.labels.length === 0) {
-        console.error("No label data received from server");
+      const response = await axiosInstance.post("/label", { awbNumbers: selectedAwbNumbers });
+      const labels = response.data.labels;
+      if (!labels || labels.length === 0) {
         alert("No label data available.");
         return;
       }
   
-      const generateBarcodeDataUrl = (text) => {
-        const canvas = document.createElement("canvas");
+      // Helper: generate barcode
+      const generateBarcodeDataUrl = text => {
+        const canvas = document.createElement('canvas');
         try {
-          JsBarcode(canvas, text, {
-            format: "CODE128",
-            width: 2,
-            height: 50,
-            displayValue: false,
-          });
-        } catch (barcodeError) {
-          console.error("Error generating barcode for", text, barcodeError);
+          JsBarcode(canvas, text, { format: 'CODE128', width: 2, height: 50, displayValue: false });
+        } catch (e) {
+          console.error('Barcode error', e);
         }
-        return canvas.toDataURL("image/png");
+        return canvas.toDataURL('image/png');
       };
   
-      const logoUrl = "../../../public/shipDuniyaIcon.jpg";
-  
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
+      // Helper: load image as Promise
+      const loadImage = src => new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
       });
   
-      for (let i = 0; i < response.data.labels.length; i++) {
-        const labelData = response.data.labels[i];
-        const shipment = shipments.find((s) => s.awbNumber === labelData.awb);
-        console.log(`Processing label ${i + 1} for AWB:`, labelData.awb);
+      // Preload ShipDuniya icon
+      const logoUrl = '/shipDuniyaIcon.jpg';
+      let iconImg;
+      try {
+        iconImg = await loadImage(logoUrl);
+      } catch (err) {
+        console.error('Logo load failed', err);
+        // proceed without icon
+      }
   
-        if (!shipment) {
-          console.error(`Shipment not found for AWB: ${labelData.awb}`);
-          continue;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  
+      labels.forEach((labelData, idx) => {
+        if (idx > 0) doc.addPage();
+  
+        // Top-right icon
+        if (iconImg) {
+          doc.addImage(iconImg, 'JPEG', 150, 15, 45, 45);
         }
   
-        // Ensure shipment.orderIds and shipment.shipmentIds exist and have at least one element
-        if (
-          !shipment.orderIds ||
-          shipment.orderIds.length === 0 ||
-          !shipment.shipmentId
-        ) {
-          console.error("Missing orderIds or shipmentIds for shipment:", shipment);
-          continue;
-        }
+        // Find shipment data
+        const ship = shipments.find(s => s.awbNumber === labelData.awb);
+        if (!ship) return;
   
-        if (i > 0) doc.addPage();
-  
-        const orderId = shipment.shipmentId || "N/A";
-        const awbNumber = shipment.awbNumber || "0123456789";
-        const orderIdBarcodeUrl = generateBarcodeDataUrl(orderId);
-        const awbBarcodeUrl = generateBarcodeDataUrl(awbNumber);
-  
-        // To section
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("To:", 15, 20);
-  
-        doc.setFont("helvetica", "bold");
-        const fullAddress = shipment.pickupAddress?.addressLine1 || "";
-        const addressLines = doc.splitTextToSize(fullAddress, 140);
-        let currentY = 30;
-        addressLines.forEach((line) => {
-          doc.text(line.toUpperCase(), 15, currentY);
-          currentY += 5;
+        // === Recipient Address ===
+        doc.setFont('helvetica', 'bold').setFontSize(12);
+        doc.text('To:', 15, 20);
+        const lines = doc.splitTextToSize(
+          (ship.pickupAddress?.addressLine1 || '').toUpperCase(),
+          140
+        );
+        let y = 30;
+        lines.forEach(line => {
+          doc.text(line, 15, y);
+          y += 5;
         });
-        doc.text(`India - ${shipment.pickupAddress?.pincode || "N/A"}`, 15, currentY);
-        currentY += 5;
+        doc.text(`India - ${ship.pickupAddress?.pincode || 'N/A'}`, 15, y);
+        y += 5;
         doc.text(
-          `MOBILE NO: ${shipment.pickupAddress?.mobile || labelData.mobile || "N/A"}`,
+          `MOBILE NO: ${ship.pickupAddress?.mobile || labelData.mobile || 'N/A'}`,
           15,
-          currentY
+          y
         );
+        doc.line(15, y + 10, 185, y + 10);
   
-        // Horizontal line after address
-        doc.line(15, currentY + 25, 185, currentY + 25);
-  
-        // Logo box and image will be added later
-        doc.rect(150, 15, 45, 45);
-  
-        // COD and weight section
-        doc.setFontSize(18)
-          .setFont("helvetica", "bold")
-          .text(shipment.orderIds[0].orderType === "COD" ? "COD" : "PREPAID", 20, 80);
-        const collectableValue =
-          shipment.orderIds[0].collectableValue > 0 ? shipment.orderIds[0].collectableValue : "";
-        doc.text(`${collectableValue}`, 20, 88);
-        doc.text(`${shipment.shipmentIds[0].actualWeight}kg`, 150, 80);
-        doc.text(
-          `${shipment.shipmentIds[0].length}X${shipment.shipmentIds[0].breadth}X${shipment.shipmentIds[0].height}`,
-          150,
-          88
-        );
-  
-        // Horizontal line after COD/weight
+        // === COD / PREPAID & Weight ===
+        const order0 = ship.orderIds[0];
+        const shipId0 = ship.shipmentIds?.[0];
+        doc.setFontSize(18).setFont('helvetica', 'bold');
+        doc.text(order0.orderType === 'COD' ? 'COD' : 'PREPAID', 20, 80);
+        const collectVal = order0.collectableValue > 0 ? String(order0.collectableValue) : '';
+        doc.text(collectVal, 20, 88);
+        if (shipId0) {
+          doc.text(`${shipId0.actualWeight}kg`, 150, 80);
+          doc.text(
+            `${shipId0.length}X${shipId0.breadth}X${shipId0.height}`,
+            150,
+            88
+          );
+        }
         doc.line(15, 95, 185, 95);
   
-        // Order details
-        doc.setFontSize(10).setFont("helvetica", "normal");
-        doc.text(`Order id: ${orderId}`, 15, 105);
+        // === Order Details & Barcodes ===
+        const oid = ship.shipmentId;
+        const awb = ship.awbNumber;
+        const oBar = generateBarcodeDataUrl(oid);
+        const aBar = generateBarcodeDataUrl(awb);
+  
+        doc.setFont('helvetica', 'normal').setFontSize(10);
+        doc.text(`Order id: ${oid}`, 15, 105);
         doc.text(
-          `Order Date: ${new Date(shipment.createdAt).toLocaleDateString() || "N/A"}`,
+          `Order Date: ${new Date(ship.createdAt).toLocaleDateString()}`,
           15,
           110
         );
-        doc.text(`Invoice number - ${shipment.orderIds[0].invoiceNumber}`, 15, 115);
-  
-        // Add Order ID barcode
-        doc.addImage(orderIdBarcodeUrl, "PNG", 120, 105, 60, 15);
-        doc.setFontSize(8);
-        doc.text(shipment.orderIds[0].orderId, 145, 123);
-  
-        // Horizontal line after order details
+        doc.text(`Invoice number - ${order0.invoiceNumber}`, 15, 115);
+        doc.addImage(oBar, 'PNG', 120, 105, 60, 15);
+        doc.setFontSize(8).text(order0.orderId, 145, 123);
         doc.line(15, 130, 185, 130);
   
-        // Destination and courier info
+        // === Destination & Courier ===
         doc.setFontSize(10);
         doc.text(
-          `Fwd Destination Code: ${labelData.destinationCode || "N/A"}`,
+          `Fwd Destination Code: ${labelData.destinationCode || 'N/A'}`,
           15,
           140
         );
         doc.text(
-          `Courier partner: ${shipment.partnerDetails?.name || shipment.partnerName || "N/A"}`,
+          `Courier partner: ${ship.partnerDetails?.name || ship.partnerName || 'N/A'}`,
           15,
           145
         );
   
-        // Add AWB barcode - centered
-        doc.addImage(awbBarcodeUrl, "PNG", 50, 150, 100, 20);
-        doc.setFont("helvetica", "bold");
-        doc.text(`AWB NUMBER (${awbNumber})`, 85, 173);
+        // AWB Barcode
+        doc.addImage(aBar, 'PNG', 50, 150, 100, 20);
+        doc.setFont('helvetica', 'bold').text(`AWB NUMBER (${awb})`, 85, 173);
   
-        // Product details section
-        doc.setFont("helvetica", "normal");
-        doc.text("Product details:-", 15, 180);
-  
-        const tableHeaders = [
-          "SKU",
-          "Product Description",
-          "Quantity",
-          "Amount per unit",
-          "Total Amount",
-          "GST",
-          "Taxable Amount"
+        // === Product Details Table ===
+        const tableTop = 185;
+        const headers = [
+          'SKU',
+          'Product Description',
+          'Quantity',
+          'Amount per unit',
+          'Total Amount',
+          'GST',
+          'Taxable Amount',
         ];
-        const colWidth = 170 / tableHeaders.length;
-        let xPos = 15;
-  
-        // Table headers
-        tableHeaders.forEach((header) => {
-          doc.rect(xPos, 185, colWidth, 10);
-          const wrappedHeader = doc.splitTextToSize(header, colWidth - 2);
-          doc.setFont("helvetica", "bold");
-          wrappedHeader.forEach((line, idx) => {
-            doc.text(line, xPos + 2, 190 + idx * 4);
+        const colWidth = 170 / headers.length;
+        let x = 15;
+        doc.setFont('helvetica', 'bold').setFontSize(8);
+        headers.forEach(header => {
+          doc.rect(x, tableTop, colWidth, 10);
+          const split = doc.splitTextToSize(header, colWidth - 2);
+          split.forEach((ln, idx) => {
+            doc.text(ln, x + 2, tableTop + 4 + idx * 4);
           });
-          xPos += colWidth;
+          x += colWidth;
         });
   
-        // Table rows
-        if (shipment.orderIds?.length > 0) {
-          shipment.orderIds.forEach((product, j) => {
-            xPos = 15;
-            tableHeaders.forEach((_, k) => {
-              doc.rect(xPos, 195 + j * 10, colWidth, 10);
-  
-              const amountPerUnit =
-                product.quantity && product.quantity > 0
-                  ? (product.declaredValue / product.quantity).toFixed(2)
-                  : "-";
-              const values = [
-                "", // SKU placeholder
-                product.itemDescription || "-",
-                product.quantity?.toString() || "-",
-                amountPerUnit,
-                "", // Total Amount placeholder
-                product.declaredValue ? product.declaredValue.toString() : "-",
-                "" // Taxable Amount placeholder
-              ];
-              const value = values[k] || "";
-              const wrappedValue = doc.splitTextToSize(value, colWidth - 2);
-              doc.setFont("helvetica", "normal");
-              wrappedValue.forEach((line, idx) => {
-                doc.text(line, xPos + 2, 201 + j * 10 + idx * 4);
-              });
-              xPos += colWidth;
+        // Rows
+        ship.orderIds.forEach((prd, i) => {
+          x = 15;
+          const yRow = tableTop + 10 + i * 10;
+          const values = [
+            prd.skuCode || '-',
+            prd.itemDescription || '-',
+            String(prd.quantity || '-'),
+            prd.quantity
+              ? (prd.declaredValue / prd.quantity).toFixed(2)
+              : '-',
+            '-',
+            prd.declaredValue
+              ? prd.declaredValue.toString()
+              : '-',
+            '-',
+          ];
+          doc.setFont('helvetica', 'normal').setFontSize(8);
+          values.forEach(val => {
+            doc.rect(x, yRow, colWidth, 10);
+            const split = doc.splitTextToSize(val, colWidth - 2);
+            split.forEach((ln, idx) => {
+              doc.text(ln, x + 2, yRow + 4 + idx * 4);
             });
+            x += colWidth;
           });
-        }
+        });
   
-        // Pickup and return address
-        doc.setFont("helvetica", "bold");
-        doc.text("Pickup and Return Address:", 15, 215);
-        doc.setFont("helvetica", "normal");
+        // === Pickup/Return Address ===
+        doc.setFont('helvetica', 'bold').setFontSize(10);
+        doc.text('Pickup and Return Address:', 15, 215);
+        doc.setFont('helvetica', 'normal').setFontSize(9);
         doc.text(
-          "SHIP DUNIYA C 45 GROUND FLOOR SECTOR 10 NOIDA- 201301 Delhi",
+          'SHIP DUNIYA C 45 GROUND FLOOR SECTOR 10 NOIDA- 201301 Delhi',
           15,
           220
         );
-        doc.text("NCR, uttar pradesh, India - 201301", 15, 225);
+        doc.text('NCR, Uttar Pradesh, India - 201301', 15, 225);
         doc.text(
-          `Mobile No.: ${labelData.pickupMobile || "9220551211"}  GST No: ${
-            labelData.gstNumber || "09APLFS8825D1ZK"
+          `Mobile No.: ${labelData.pickupMobile || '9220551211'}  GST No: ${
+            labelData.gstNumber || '09APLFS8825D1Z'
           }`,
           15,
           230
         );
   
-        // Contact information
-        doc.setFont("helvetica", "bold");
-        doc.text("For any query please contact:", 15, 235);
-        doc.setFont("helvetica", "normal");
+        // === Contact ===
+        doc.setFont('helvetica', 'bold').setFontSize(10);
+        doc.text('For any query please contact:', 15, 235);
+        doc.setFont('helvetica', 'normal').setFontSize(9);
         doc.text(
-          `Mobile no:- ${labelData.supportMobile || "9990531211"} Email: ${
-            labelData.supportEmail || "shipduniya@gmail.com"
+          `Mobile no:- ${labelData.supportMobile || '9990531211'} Email: ${
+            labelData.supportEmail || 'shipduniya@gmail.com'
           }`,
           15,
           240
         );
   
-        // Draw main border
-        doc.setLineWidth(0.5);
-        doc.rect(10, 10, 190, 235);
+        // === Main Border ===
+        doc.setLineWidth(0.5).rect(10, 10, 190, 235);
   
-        // Disclaimer box
-        doc.rect(15, 255, 175, 17, "S");
-        doc.setFontSize(8);
+        // === Disclaimer Box ===
+        doc.rect(15, 255, 175, 17, 'S');
+        doc.setFont('helvetica', 'normal').setFontSize(8);
         doc.text(
-          "ALL DISPUTES ARE SUBJECTS TO UTTAR PRADESH(U.P) JURISDICTION ONLY. GOODS",
+          'ALL DISPUTES ARE SUBJECTS TO UTTAR PRADESH(U.P) JURISDICTION ONLY. GOODS',
           17,
           260
         );
@@ -766,38 +740,29 @@ const ShipmentTable = ({
           17,
           265
         );
-        doc.text("EXCHANGE/RETURN POLICY.", 17, 270);
+        doc.text('EXCHANGE/RETURN POLICY.', 17, 270);
   
-        // Footer text
-        doc.setFontSize(9).setFont("helvetica", "bold");
-        doc.text("THIS IS AN AUTO-GENERATED LABEL &", 15, 280);
-        doc.text("DOES NOT NEED SIGNATURE", 15, 285);
+        // === Footer ===
+        doc.setFont('helvetica', 'bold').setFontSize(9);
+        doc.text('THIS IS AN AUTO-GENERATED LABEL &', 15, 280);
+        doc.text('DOES NOT NEED SIGNATURE', 15, 285);
   
-        // Powered by text and logo
-        doc.text("Powered by:-", 140, 280);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Powered by:-', 140, 280);
         doc.setTextColor(0, 0, 150);
-        doc.text("SHIP", 152, 285);
+        doc.text('SHIP', 152, 285);
         doc.setTextColor(255, 0, 0);
-        doc.text("DUNIYA", 165, 285);
+        doc.text('DUNIYA', 160, 285);
         doc.setTextColor(0, 0, 0);
+      });
   
-        // Load and add the logo image asynchronously
-        try {
-          const logoImg = await loadImageAsync(logoUrl);
-          doc.addImage(logoImg, "PNG", 135, 285, 20, 20);
-          console.log("Logo image added successfully");
-        } catch (imgError) {
-          console.error("Error loading logo image:", imgError);
-        }
-      }
-  
-      console.log("Saving PDF document");
-      doc.save("shipping-labels.pdf");
+      doc.save('shipping-labels.pdf');
     } catch (error) {
-      console.error("Error generating labels:", error);
-      alert("An error occurred while generating labels.");
+      console.error('Error generating labels:', error);
+      alert('An error occurred while generating labels.');
     }
   };
+  
 
   const cancelShipment = async (id) =>{
     try{

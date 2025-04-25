@@ -161,18 +161,12 @@ export default function SignUpForm() {
       <Card className="relative z-10 w-full max-w-md bg-white shadow-lg p-6 rounded-xl">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center space-x-2">
-            <Image
-              src={"shipDuniyaIcon.jpg"}
-              width={50}
-              height={50}
-              alt="ShipDuniya Logo"
-              unoptimized
-            />
+            <Image src="/shipDuniyaIcon.jpg" width={50} height={50} alt="ShipDuniya Logo" unoptimized />
             <CardTitle
               className="text-2xl font-bold cursor-pointer"
               onClick={() => router.push("/")}
             >
-              Ship Duniya
+              Ship <span className="text-red-700">D</span>uniya
             </CardTitle>
           </div>
           <p className="text-center text-sm text-muted-foreground">
